@@ -7,18 +7,33 @@ import '../view_models/flowchart_editor_viewmodel.dart';
 
 class ElementWidget extends StatelessWidget {
   final BaseElement element;
-  final String? index;
+  final String index;
 
-  const ElementWidget({super.key, required this.element, this.index});
+  ElementWidget({super.key, required this.element, required this.index});
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => ElementViewModel(element, index),
+      child: const _ElementWidget(),
+    );
+  }
+}
+
+class _ElementWidget extends StatelessWidget {
+  const _ElementWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    var vm = context.watch<ElementViewModel>();
+    BaseElement element = vm.currentElement;
+    String index = vm.index;
     String text;
     if (element is TerminalElement) {
-      text = (element as TerminalElement).placeholder ?? "Placeholder";
+      text = (element).placeholder ?? "Placeholder";
     }
     else {
-      text = element.expr.join(" ") + (index ?? "No Index");
+      text = element.expr.join(" ") + index;
     }
 
     return GestureDetector(

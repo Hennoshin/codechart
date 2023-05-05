@@ -86,11 +86,7 @@ class _FlowchartModelView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _createFlowchart(element.trueBranchNextElement, "$current$i.0.", true, element.mergePoint),
-            ChangeNotifierProvider(
-              create: (_) => ElementViewModel(element, current + i.toString()),
-              lazy: false,
-              child: ElementWidget(element: element, index: current + i.toString()),
-            ),
+            ElementWidget(element: element, index: current + i.toString()),
             _createFlowchart(element.falseBranchNextElement, "$current$i.1.", true, element.mergePoint)
           ]
         ));
@@ -98,10 +94,7 @@ class _FlowchartModelView extends StatelessWidget {
       else {
         print(i);
         var c = ElementViewModel(element, current + i.toString());
-        widgets.add(ChangeNotifierProvider.value(
-          value: c,
-          child: ElementWidget(element: element, index: current + i.toString()),
-        ));
+        widgets.add(ElementWidget(element: element, index: current + i.toString()));
       }
 
       i += 1;
@@ -111,14 +104,7 @@ class _FlowchartModelView extends StatelessWidget {
     }
 
     if (!isBranch) {
-      widgets.add(ChangeNotifierProvider(
-        create: (_) {
-          print("Notifier builder ${current + i.toString()}");
-          return ElementViewModel(element, current + i.toString());
-        },
-        lazy: false,
-        child: ElementWidget(element: element, index: current + i.toString()),
-      ));
+      widgets.add(ElementWidget(element: element, index: current + i.toString()));
     }
 
     return Column(

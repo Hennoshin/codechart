@@ -5,6 +5,7 @@ import "base_element.dart";
 
 class Flowchart {
   List<BaseElement> elements = [];
+  Map<String, BaseElement> elements2 = {};
 
   Flowchart(String? startPlaceholder) {
     BaseElement start = TerminalElement.start(startPlaceholder);
@@ -14,6 +15,120 @@ class Flowchart {
 
     elements.add(start);
     elements.add(end);
+
+    elements2["0"] = start;
+    elements2["1"] = end;
+  }
+
+  void addElement2(BaseElement newElement, String targetLocation) {
+    String target = targetLocation;
+
+    List<int> indexes = targetLocation.split(".").map((e) => int.parse(e)).toList();
+    int prevIndex = indexes.removeLast() - 1;
+    int? branch;
+    if (indexes.isNotEmpty) {
+      branch = indexes.removeLast();
+    }
+
+    String prevTarget = targetLocation.replaceRange(targetLocation.length - 1, null, prevIndex.toString());
+    if (prevIndex == 0 && targetLocation.length > 1) {
+      prevTarget = prevTarget.substring(0, prevTarget.length - 4);
+    }
+
+    BaseElement prevElement = elements2[prevTarget]!;
+    if (prevIndex == 0 && targetLocation.length > 1) {
+      if (branch! == 0) {
+        newElement.nextElement = (prevElement as BranchingElement).trueBranchNextElement;
+        prevElement.trueBranchNextElement = newElement;
+      }
+      else {
+        newElement.nextElement = (prevElement as BranchingElement).falseBranchNextElement;
+        prevElement.falseBranchNextElement = newElement;
+      }
+    }
+    else {
+      newElement.nextElement = prevElement.nextElement;
+      prevElement.nextElement = newElement;
+    }
+
+    _shiftElements(newElement, targetLocation);
+  }
+
+  void _shiftElements(BaseElement newElement, String targetLocation) {
+    BaseElement? element = newElement;
+    String currentTarget = targetLocation;
+    int currentTargetLastIndex = currentTarget.length - 1;
+    int index = int.parse(currentTarget.substring(currentTargetLastIndex));
+    do {
+      var tmpElement = elements2[currentTarget];
+      elements2[currentTarget] = element!;
+      element = tmpElement;
+
+      index += 1;
+      currentTarget = targetLocation.replaceRange(currentTargetLastIndex, null, index.toString());
+    } while (element != null);
+  }
+
+  void removeElement2(String targetLocation) {
+    String target = targetLocation;
+    BaseElement currentElement = elements2[targetLocation]!;
+
+    List<int> indexes = targetLocation.split(".").map((e) => int.parse(e)).toList();
+    int prevIndex = indexes.removeLast() - 1;
+    int? branch;
+    if (indexes.isNotEmpty) {
+      branch = indexes.removeLast();
+    }
+
+    String prevTarget = targetLocation.replaceRange(targetLocation.length - 1, null, prevIndex.toString());
+    if (prevIndex == 0 && targetLocation.length > 1) {
+      prevTarget = prevTarget.substring(0, prevTarget.length - 4);
+    }
+
+    BaseElement prevElement = elements2[prevTarget]!;
+    if (prevIndex == 0 && targetLocation.length > 1) {
+      if (branch! == 0) {
+        (prevElement as BranchingElement).trueBranchNextElement = currentElement.nextElement;
+      }
+      else {
+        (prevElement as BranchingElement).falseBranchNextElement = currentElement.nextElement;
+      }
+    }
+    else {
+      prevElement.nextElement = currentElement.nextElement;
+    }
+
+    _shiftRemoveElements(targetLocation);
+  }
+
+  void _shiftRemoveElements(String targetLocation) {
+    BaseElement? element;
+    String currentTarget = targetLocation;
+    int currentTargetLastIndex = currentTarget.length - 1;
+    int index = int.parse(currentTarget.substring(currentTargetLastIndex));
+
+    String target2 = currentTarget.replaceRange(currentTargetLastIndex, null, (index + 1).toString());
+    element = elements2[target2];
+    while (element != null) {
+      elements2[currentTarget] = element;
+
+      index += 1;
+      currentTarget = targetLocation.replaceRange(currentTargetLastIndex, null, index.toString());
+      target2 = currentTarget.replaceRange(currentTargetLastIndex, null, (index + 1).toString());
+
+      element = elements2[target2];
+    }
+    elements2.remove(currentTarget);
+  }
+
+  void _reindexElements(String locationIndex, String newIndex) {
+    elements2.map((key, value) {
+      if (key.contains(locationIndex)) {
+        return MapEntry(key.replaceRange(0, null, newIndex), value);
+      }
+
+      return MapEntry(key, value);
+    });
   }
 
   // The location is indexed like a tree, starts from 0 to n.
