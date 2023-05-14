@@ -14,7 +14,7 @@ const Map<DataType, Type> dataTypeMap = {
 
 class Wrapper<T> {
   T? val;
-  Type type = T;
+  final Type type = T;
 
   Wrapper([this.val]);
 
