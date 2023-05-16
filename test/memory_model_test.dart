@@ -11,9 +11,15 @@ void main() {
     memory = Memory("testStack");
   });
 
-  test("Add same variable", () {
+  test("Add variable", () {
     memory.addNewVariables<int>("testVar");
     expect(memory.variables["testVar"] != null, true);
+  });
+
+  test("Add same variable", () {
+    String varName = "testVar";
+    memory.addNewVariables<int>(varName);
+    expect(() => memory.addNewVariables<int>(varName), throwsException);
   });
 
   test("Get nonexistent variable", () {
