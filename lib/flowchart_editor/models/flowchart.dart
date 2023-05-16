@@ -1,5 +1,6 @@
 import 'package:code_chart/flowchart_editor/execution_environment/execution_environment.dart';
 import 'package:code_chart/flowchart_editor/models/branching_element.dart';
+import 'package:code_chart/flowchart_editor/models/merging_element.dart';
 import 'package:code_chart/flowchart_editor/models/terminal_element.dart';
 import "base_element.dart";
 
@@ -20,9 +21,35 @@ class Flowchart {
     elements2["1"] = end;
   }
 
-  void addElement2(BaseElement newElement, String targetLocation) {
-    String target = targetLocation;
+  void fullReindex() {
+    var start = elements2["0"]!;
+    elements2.clear();
+    _reindex(start);
+  }
 
+  // TODO: Add support to accept [index] parameter to reindex for that point instead of from the beginning
+  void _reindex(BaseElement start, [String prefix = "", MergingElement? mergeBranch]) {
+    int index = 0;
+    BaseElement currentEl = start;
+    BaseElement? prevEl;
+    if (prefix != "") {
+      index += 1;
+    }
+    while (prevEl != currentEl && currentEl != mergeBranch) {
+      elements2[prefix + index.toString()] = currentEl;
+
+      if (currentEl is BranchingElement) {
+        _reindex(currentEl.trueBranchNextElement, "$prefix$index.0.", currentEl.mergePoint);
+        _reindex(currentEl.falseBranchNextElement, "$prefix$index.1.", currentEl.mergePoint);
+      }
+
+      prevEl = currentEl;
+      currentEl = currentEl.nextElement;
+      index += 1;
+    }
+  }
+
+  void addElement2(BaseElement newElement, String targetLocation) {
     List<int> indexes = targetLocation.split(".").map((e) => int.parse(e)).toList();
     int prevIndex = indexes.removeLast() - 1;
     int? branch;
@@ -30,6 +57,7 @@ class Flowchart {
       branch = indexes.removeLast();
     }
 
+    // Calculate previous element index before the current target
     String prevTarget = targetLocation.replaceRange(targetLocation.length - 1, null, prevIndex.toString());
     if (prevIndex == 0 && targetLocation.length > 1) {
       prevTarget = prevTarget.substring(0, prevTarget.length - 4);
@@ -51,7 +79,7 @@ class Flowchart {
       prevElement.nextElement = newElement;
     }
 
-    _shiftElements(newElement, targetLocation);
+    fullReindex();
   }
 
   void _shiftElements(BaseElement newElement, String targetLocation) {
@@ -70,7 +98,6 @@ class Flowchart {
   }
 
   void removeElement2(String targetLocation) {
-    String target = targetLocation;
     BaseElement currentElement = elements2[targetLocation]!;
 
     List<int> indexes = targetLocation.split(".").map((e) => int.parse(e)).toList();
@@ -98,7 +125,7 @@ class Flowchart {
       prevElement.nextElement = currentElement.nextElement;
     }
 
-    _shiftRemoveElements(targetLocation);
+    fullReindex();
   }
 
   void _shiftRemoveElements(String targetLocation) {
