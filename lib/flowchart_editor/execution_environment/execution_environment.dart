@@ -160,23 +160,8 @@ class ExecutionEnvironment {
               return func.startElement;
 
             case "return":
-              if (ast.offset != 0) {
-                ASTNode returnVal = convertIdentifierToLiteral(ast.removeFromCurrentPosition(1));
-                destroyTopMemoryStack();
-                int index = loadExecutionState();
-                print(topStack.stackName);
+              _functionReturn(ast);
 
-                var stack = _currentAST[index];
-                stack.ast[stack.currentPointer] = returnVal;
-              }
-              else {
-                destroyTopMemoryStack();
-                int index = loadExecutionState();
-
-                var stack = _currentAST[index];
-                stack.ast[stack.currentPointer] = ASTNode.empty();
-              }
-              print(currentElement.expr);
               return currentElement;
 
             case "+":
@@ -308,6 +293,22 @@ class ExecutionEnvironment {
     }
 
     return ASTNode(ASTNodeType.literal, op.value!, op.runtimeType);
+  }
+
+  void _functionReturn(_StackAST ast) {
+    ASTNode? returnVal;
+    if (ast.offset != 0) {
+      returnVal = convertIdentifierToLiteral(ast.removeFromCurrentPosition(1));
+    }
+
+    destroyTopMemoryStack();
+    if (memoryStack.isEmpty){
+      return;
+    }
+
+    int index = loadExecutionState();
+    var stack = _currentAST[index];
+    stack.ast[stack.currentPointer] = returnVal ?? ASTNode.empty();
   }
 
   /*
