@@ -39,6 +39,7 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
           padding: const EdgeInsets.all(5.0),
           child: Row(
             children: <Widget>[
+              const _FlowchartExecutionControl(),
               ElevatedButton(
                   onPressed: () {
                     context.read<FlowchartEditorViewModel>().addElement(0);
@@ -166,5 +167,33 @@ class _ToolsRow extends StatelessWidget {
       }
     );
   }
+}
 
+class _FlowchartExecutionControl extends StatelessWidget {
+  const _FlowchartExecutionControl({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector<FlowchartEditorViewModel, bool>(
+      selector: (_, vm) => vm.isFlowchartRunning,
+      builder: (_, isRunning, __) => Row(
+        children: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.play_arrow),
+            color: Colors.green,
+            onPressed: () {
+              context.read<FlowchartEditorViewModel>().stepRunFlowchart();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.stop),
+            color: isRunning ? Colors.red : null,
+            onPressed: isRunning ? () {
+              context.read<FlowchartEditorViewModel>().stopFlowchart();
+            } : null,
+          )
+        ],
+      ),
+    );
+  }
 }
