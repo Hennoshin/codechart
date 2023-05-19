@@ -10,23 +10,34 @@ class MemoryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Selector<MemoryViewModel, List<Memory>>(
-      selector: (_, vm) => vm.memory,
-      builder: (_, list, __) => list.isEmpty ?
-      const Text("Memory empty") :
-      ListView.builder(
-        itemCount: list.length,
-        itemBuilder: (context, index) => ExpansionTile(
-          title: Text(list[index].stackName),
-          children: <Widget>[
-            ListView.builder(
-              itemCount: list[index].variables.length,
-              itemBuilder: (_, index) => _VariableEntry(
-                  varName: list[index].variables.keys.elementAt(index),
-                  stackIndex: index
-              ),
-            )
-          ],
+    return Container(
+      height: 1000,
+      width: 500,
+      child: Selector<MemoryViewModel, List<Memory>>(
+        selector: (_, vm) => vm.memory,
+        builder: (_, list, __) => list.isEmpty ?
+        const Text("Memory empty") :
+        ListView.builder(
+          itemCount: list.length,
+          itemBuilder: (context, index) => ExpansionTile(
+            title: Text(list[index].stackName),
+            children: <Widget>[
+              Container(
+                height: 750,
+                width: 450,
+                child: Selector<MemoryViewModel, Map>(
+                  selector: (_, memoryVm) => memoryVm.memory[index].variables,
+                  builder: (_, variables, __) => ListView.builder(
+                    itemCount: variables.length,
+                    itemBuilder: (_, index) => _VariableEntry(
+                        varName: variables.keys.elementAt(index),
+                        stackIndex: index
+                    ),
+                  ),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );
