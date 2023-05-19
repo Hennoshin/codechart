@@ -35,4 +35,9 @@ class TerminalElement extends BaseElement {
 
     expr = properties.first as String;
   }
+
+  @override
+  String toString() {
+    return placeholder ?? "Terminal";
+  }
 }
