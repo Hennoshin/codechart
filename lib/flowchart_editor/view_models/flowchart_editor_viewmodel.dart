@@ -65,7 +65,7 @@ class FlowchartEditorViewModel extends ChangeNotifier {
         throw Exception("Unknown type");
     }
 
-    currentFlowchart.addElement(newElement, addElementIndex);
+    currentFlowchart.addElement2(newElement, addElementIndex);
 
     notifyListeners();
   }
@@ -86,6 +86,10 @@ class FlowchartEditorViewModel extends ChangeNotifier {
     mainProgram.stopFlowchart();
 
     notifyListeners();
+  }
+
+  BaseElement? currentRunElement() {
+    return mainProgram.runEnv?.currentElement;
   }
 
   bool get isFlowchartRunning => mainProgram.isRunning;
