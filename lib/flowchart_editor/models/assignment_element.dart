@@ -62,4 +62,10 @@ class AssignmentElement extends BaseElement {
     assignmentExpr = properties.first as String;
     expr = properties.last as String;
   }
+
+  @override
+  String toString() {
+    String str = (_assignmentExpr ?? "") + (super.expr.first ?? "");
+    return str != "" ? str : "Assignment";
+  }
 }

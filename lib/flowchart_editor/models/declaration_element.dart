@@ -79,4 +79,9 @@ class DeclarationElement extends BaseElement {
 
     arraySize = properties[3];
   }
+
+  @override
+  String toString() {
+    return super.expr.first ?? "Declaration";
+  }
 }
