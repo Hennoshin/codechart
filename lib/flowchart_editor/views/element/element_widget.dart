@@ -1,9 +1,11 @@
 import 'package:code_chart/flowchart_editor/models/terminal_element.dart';
 import 'package:code_chart/flowchart_editor/view_models/element_viewmodel.dart';
+import 'package:code_chart/flowchart_editor/view_models/flowchart_viewmodel.dart';
 import "package:flutter/material.dart";
 import 'package:provider/provider.dart';
-import "../models/base_element.dart";
-import '../view_models/flowchart_editor_viewmodel.dart';
+import 'package:tuple/tuple.dart';
+import '../../models/base_element.dart';
+import '../../view_models/flowchart_editor_viewmodel.dart';
 
 class ElementWidget extends StatelessWidget {
   final BaseElement element;
@@ -13,6 +15,8 @@ class ElementWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+
     return ChangeNotifierProvider(
       create: (_) => ElementViewModel(element, index),
       child: const _ElementWidget(),
@@ -90,5 +94,28 @@ class _ElementEditViewDialog extends StatelessWidget {
     );
   }
 
+
+}
+
+class ElementWidget2 extends StatelessWidget {
+  final String positionIndex;
+
+  const ElementWidget2({super.key, required this.positionIndex});
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector2<FlowchartViewModel, FlowchartEditorViewModel, Tuple2<String, bool>>(
+      selector: (_, vm1, vm2) {
+        BaseElement? element = vm1.elementAt(positionIndex);
+        return Tuple2(element.toString(), element == vm2.currentRunElement());
+      },
+      builder: (_, data, __) => Container(
+        color: data.item2 ? Colors.green : Colors.red,
+        width: 100,
+        height: 50,
+        child: Text(data.item1),
+      ),
+    );
+  }
 
 }
