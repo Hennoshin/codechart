@@ -57,15 +57,10 @@ void test() {
 }
 
 void main() {
-  test();
-
-  /*
   runApp(const MaterialApp(
     initialRoute: "/home",
     onGenerateRoute: pageRouting,
   ));
-
-   */
 
   /*
   var tokens = Lexer.lex("return+arr2[A - 3 | 4] == ~arr[32] * -+test(5 % 2, test2[4 / +-5], !(+_ro || true))");
