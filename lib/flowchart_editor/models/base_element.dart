@@ -1,8 +1,9 @@
-import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
 import 'package:code_chart/utility/data_classes.dart';
 import 'package:flutter/material.dart';
 import '../execution_environment/memory.dart';
 
+// TODO: Change expr getter to separate between the list and the single expr
+// TODO: Consider putting nextStructureElement to get next element in the structure, not execution, such as after the element's scope
 abstract class BaseElement {
   @protected
   String? _expr;

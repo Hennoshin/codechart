@@ -104,8 +104,7 @@ class ExecutionEnvironment {
         }
         
         if (node.type == ASTNodeType.identifier && node.value is String) {
-          Object? programObject = topStack.getData(node.value as String);
-          programObject ??= functionTable[node.value];
+          Object? programObject = topStack.containsVariable(node.value as String) ? topStack.getData(node.value as String) : functionTable[node.value];
           if (programObject == null) {
             throw Exception("Unknown variable. The identifier is neither a variable nor a function, ${currentElement.expr}");
           }
@@ -147,7 +146,7 @@ class ExecutionEnvironment {
                   topStack.addNewVariables<String>(farg.name);
                 }
                 var wrapper = topStack.getData(farg.name);
-                topStack.assignVariable(wrapper!, args.value);
+                topStack.assignVariable(wrapper, args.value);
 
                 addOffset -= 1;
               }
@@ -161,23 +160,8 @@ class ExecutionEnvironment {
               return func.startElement;
 
             case "return":
-              if (ast.offset != 0) {
-                ASTNode returnVal = convertIdentifierToLiteral(ast.removeFromCurrentPosition(1));
-                destroyTopMemoryStack();
-                int index = loadExecutionState();
-                print(topStack.stackName);
+              _functionReturn(ast);
 
-                var stack = _currentAST[index];
-                stack.ast[stack.currentPointer] = returnVal;
-              }
-              else {
-                destroyTopMemoryStack();
-                int index = loadExecutionState();
-
-                var stack = _currentAST[index];
-                stack.ast[stack.currentPointer] = ASTNode.empty();
-              }
-              print(currentElement.expr);
               return currentElement;
 
             case "+":
@@ -235,8 +219,8 @@ class ExecutionEnvironment {
     }
 
     if (ast.type == ASTNodeType.identifier && ast.value.runtimeType == String) {
-      Object? programObject = topStack.getData(ast.value as String);
-      programObject ??= functionTable[ast.value];
+
+      Object? programObject = topStack.containsVariable(ast.value as String) ? topStack.getData(ast.value as String) : functionTable[ast.value];
       if (programObject == null) {
         throw Exception("Unknown variable. The identifier is neither a variable nor a function");
       }
@@ -309,6 +293,22 @@ class ExecutionEnvironment {
     }
 
     return ASTNode(ASTNodeType.literal, op.value!, op.runtimeType);
+  }
+
+  void _functionReturn(_StackAST ast) {
+    ASTNode? returnVal;
+    if (ast.offset != 0) {
+      returnVal = convertIdentifierToLiteral(ast.removeFromCurrentPosition(1));
+    }
+
+    destroyTopMemoryStack();
+    if (memoryStack.isEmpty){
+      return;
+    }
+
+    int index = loadExecutionState();
+    var stack = _currentAST[index];
+    stack.ast[stack.currentPointer] = returnVal ?? ASTNode.empty();
   }
 
   /*

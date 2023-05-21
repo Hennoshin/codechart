@@ -1,11 +1,8 @@
-import 'package:code_chart/flowchart_editor/models/base_element.dart';
-import 'package:code_chart/flowchart_editor/models/branching_element.dart';
-import 'package:code_chart/flowchart_editor/models/flowchart.dart';
-import 'package:code_chart/flowchart_editor/models/merging_element.dart';
-import 'package:code_chart/flowchart_editor/view_models/element_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/view_models/flowchart_editor_viewmodel.dart';
+import 'package:code_chart/flowchart_editor/view_models/flowchart_viewmodel.dart';
+import 'package:code_chart/flowchart_editor/view_models/memory_viewmodel.dart';
+import 'package:code_chart/flowchart_editor/views/flowchart_view.dart';
 import 'package:code_chart/flowchart_editor/views/memory_view.dart';
-import 'package:code_chart/flowchart_editor/widgets/element_widget.dart';
 import "package:flutter/material.dart";
 import 'package:provider/provider.dart';
 
@@ -31,7 +28,21 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
       body: Center(
         child: Container(
           padding: const EdgeInsets.all(10.0),
-          child: _FlowchartModelView()
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              ChangeNotifierProxyProvider<FlowchartEditorViewModel, FlowchartViewModel>(
+                create: (_) => FlowchartViewModel(viewModel.currentFlowchart),
+                update: (_, flowchartEditorViewModel, fvm) => fvm!..update(flowchartEditorViewModel),
+                child: const FlowchartView(),
+              ),
+              ChangeNotifierProxyProvider<FlowchartEditorViewModel, MemoryViewModel>(
+                create: (_) => MemoryViewModel(),
+                update: (_, flowchartEditorViewModel, memoryVm) => memoryVm!..update(flowchartEditorViewModel),
+                child: const MemoryView(),
+              )
+            ],
+          )
         ),
       ),
       bottomNavigationBar: BottomAppBar(
@@ -39,6 +50,7 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
           padding: const EdgeInsets.all(5.0),
           child: Row(
             children: <Widget>[
+              const _FlowchartExecutionControl(),
               ElevatedButton(
                   onPressed: () {
                     context.read<FlowchartEditorViewModel>().addElement(0);
@@ -59,93 +71,6 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
           ),
         ),
       ),
-    );
-  }
-
-}
-
-class _FlowchartModelView extends StatelessWidget {
-  _FlowchartModelView({Key? key}) : super(key: key);
-
-  Widget _createFlowchart(BaseElement startElement, [String current = "", bool isBranch = false, MergingElement? endPoint]) {
-    print("Test build");
-    BaseElement element = startElement;
-    List<Widget> widgets = [];
-
-    int i = 0;
-    if (isBranch) {
-      i += 1;
-
-      widgets.add(_AddButton(index: current + i.toString()));
-    }
-
-    while (element.nextElement != element && element != endPoint) {
-      if (element is BranchingElement) {
-        widgets.add(Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _createFlowchart(element.trueBranchNextElement, "$current$i.0.", true, element.mergePoint),
-            ChangeNotifierProvider(
-              create: (_) => ElementViewModel(element, current + i.toString()),
-              lazy: false,
-              child: ElementWidget(element: element, index: current + i.toString()),
-            ),
-            _createFlowchart(element.falseBranchNextElement, "$current$i.1.", true, element.mergePoint)
-          ]
-        ));
-      }
-      else {
-        print(i);
-        var c = ElementViewModel(element, current + i.toString());
-        widgets.add(ChangeNotifierProvider.value(
-          value: c,
-          child: ElementWidget(element: element, index: current + i.toString()),
-        ));
-      }
-
-      i += 1;
-      widgets.add(_AddButton(index: current + i.toString()));
-
-      element = element.nextElement;
-    }
-
-    if (!isBranch) {
-      widgets.add(ChangeNotifierProvider(
-        create: (_) {
-          print("Notifier builder ${current + i.toString()}");
-          return ElementViewModel(element, current + i.toString());
-        },
-        lazy: false,
-        child: ElementWidget(element: element, index: current + i.toString()),
-      ));
-    }
-
-    return Column(
-      children: widgets,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Flowchart flowchart = context.watch<FlowchartEditorViewModel>().currentFlowchart;
-
-    return _createFlowchart(flowchart.startElement);
-  }
-}
-
-class _AddButton extends StatelessWidget {
-  final String index;
-
-  const _AddButton({Key? key, required this.index}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-        onPressed: () {
-          context.read<FlowchartEditorViewModel>().setAddElementSelect(index);
-        },
-        child: Text(index)
     );
   }
 
@@ -180,5 +105,110 @@ class _ToolsRow extends StatelessWidget {
       }
     );
   }
+}
+
+class _FlowchartExecutionControl extends StatelessWidget {
+  const _FlowchartExecutionControl({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector<FlowchartEditorViewModel, bool>(
+      selector: (_, vm) => vm.isFlowchartRunning,
+      builder: (_, isRunning, __) => Row(
+        children: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.play_arrow),
+            color: Colors.green,
+            onPressed: () {
+              context.read<FlowchartEditorViewModel>().stepRunFlowchart();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.stop),
+            color: isRunning ? Colors.red : null,
+            onPressed: isRunning ? () {
+              context.read<FlowchartEditorViewModel>().stopFlowchart();
+            } : null,
+          )
+        ],
+      ),
+    );
+  }
+}
+
+/*
+
+class _FlowchartModelView extends StatelessWidget {
+  _FlowchartModelView({Key? key}) : super(key: key);
+
+  Widget _createFlowchart(BaseElement startElement, [String current = "", bool isBranch = false, MergingElement? endPoint]) {
+    print("Test build");
+    BaseElement element = startElement;
+    List<Widget> widgets = [];
+
+    int i = 0;
+    if (isBranch) {
+      i += 1;
+
+      widgets.add(_AddButton(index: current + i.toString()));
+    }
+
+    while (element.nextElement != element && element != endPoint) {
+      if (element is BranchingElement) {
+        widgets.add(Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _createFlowchart(element.trueBranchNextElement, "$current$i.0.", true, element.mergePoint),
+            ElementWidget(element: element, index: current + i.toString()),
+            _createFlowchart(element.falseBranchNextElement, "$current$i.1.", true, element.mergePoint)
+          ]
+        ));
+      }
+      else {
+        print(i);
+        var c = ElementViewModel(element, current + i.toString());
+        widgets.add(ElementWidget(element: element, index: current + i.toString()));
+      }
+
+      i += 1;
+      widgets.add(_AddButton(index: current + i.toString()));
+
+      element = element.nextElement;
+    }
+
+    if (!isBranch) {
+      widgets.add(ElementWidget(element: element, index: current + i.toString()));
+    }
+
+    return Column(
+      children: widgets,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Flowchart flowchart = context.watch<FlowchartEditorViewModel>().currentFlowchart;
+
+    return _createFlowchart(flowchart.startElement);
+  }
+}
+
+class _AddButton extends StatelessWidget {
+  final String index;
+
+  const _AddButton({Key? key, required this.index}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+        onPressed: () {
+          context.read<FlowchartEditorViewModel>().setAddElementSelect(index);
+        },
+        child: Text(index)
+    );
+  }
 
 }
+
+ */

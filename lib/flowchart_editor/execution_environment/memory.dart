@@ -15,8 +15,16 @@ class Memory {
     variables[name] = (isArray ? ListWrapper<T>(size!) : Wrapper<T>()) as Wrapper;
   }
 
-  Wrapper? getData(String name) {
-    return variables[name];
+  bool containsVariable(String name) {
+    return variables.containsKey(name);
+  }
+
+  Wrapper getData(String name) {
+    if (!variables.containsKey(name)) {
+      throw Exception("Access to nonexistent variable in memory. Current stack $stackName, trying to get $name");
+    }
+
+    return variables[name]!;
   }
 
   Wrapper getArrayData(String name, int index) {

@@ -7,7 +7,6 @@ import 'package:code_chart/flowchart_editor/models/flowchart_program.dart';
 import 'package:flutter/material.dart';
 
 import '../models/flowchart.dart';
-import 'execution_viewmodel.dart';
 
 class FlowchartEditorViewModel extends ChangeNotifier {
   FlowchartProgram mainProgram;
@@ -26,12 +25,9 @@ class FlowchartEditorViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  ExecutionViewModel envViewModel;
-
   FlowchartEditorViewModel(this.mainProgram) :
         currentFlowchart = mainProgram.mainFlowchart,
-        programName = mainProgram.programName,
-        envViewModel = ExecutionViewModel(mainProgram.runEnv);
+        programName = mainProgram.programName;
 
   void toggleName() {
     if (toggle) {
@@ -69,7 +65,7 @@ class FlowchartEditorViewModel extends ChangeNotifier {
         throw Exception("Unknown type");
     }
 
-    currentFlowchart.addElement(newElement, addElementIndex);
+    currentFlowchart.addElement2(newElement, addElementIndex);
 
     notifyListeners();
   }
@@ -79,4 +75,22 @@ class FlowchartEditorViewModel extends ChangeNotifier {
 
     notifyListeners();
   }
+
+  void stepRunFlowchart() {
+    mainProgram.stepRunFlowchart();
+
+    notifyListeners();
+  }
+
+  void stopFlowchart() {
+    mainProgram.stopFlowchart();
+
+    notifyListeners();
+  }
+
+  BaseElement? currentRunElement() {
+    return mainProgram.runEnv?.currentElement;
+  }
+
+  bool get isFlowchartRunning => mainProgram.isRunning;
 }

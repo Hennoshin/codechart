@@ -38,7 +38,12 @@ class FlowchartProgram {
   }
 
   void stepRunFlowchart() {
-    runEnv = ExecutionEnvironment(mainFlowchart.startElement, functionTable);
+    runEnv ??= ExecutionEnvironment(mainFlowchart.startElement, functionTable);
+
+    bool runStatus = runEnv!.stepRunElement();
+    if (!runStatus) {
+      stopFlowchart();
+    }
   }
 
   void stopFlowchart() {

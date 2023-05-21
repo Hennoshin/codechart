@@ -41,17 +41,22 @@ void test() {
   var el1 = BranchingElement(null);
   var el2 = BranchingElement(null);
   var el3 = DeclarationElement(null, false, DataType.integer);
+  var el4 = DeclarationElement(null, false, DataType.integer);
+  var el5 = DeclarationElement(null, false, DataType.integer);
 
   FlowchartProgram program = FlowchartProgram("Test");
   Flowchart main = program.mainFlowchart;
-  main.addElement(el1, "1");
-  main.addElement(el2, "1.1.1");
-  main.addElement(el3, "1.1.1.0.1");
+  main.addElement2(el1, "1");
+  main.addElement2(el2, "1.1.1");
+  main.addElement2(el3, "1.1.1.0.1");
+  main.addElement2(el4, "1");
+
+  for (var entry in main.elements2.entries) {
+    print("${entry.key}, ${entry.value.runtimeType}");
+  }
 }
 
 void main() {
-  test();
-
   runApp(const MaterialApp(
     initialRoute: "/home",
     onGenerateRoute: pageRouting,
