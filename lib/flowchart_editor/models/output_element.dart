@@ -1,4 +1,3 @@
-import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
 import 'package:code_chart/flowchart_editor/execution_environment/memory.dart';
 import 'package:code_chart/flowchart_editor/models/base_element.dart';
 import 'package:code_chart/utility/data_classes.dart';
@@ -11,18 +10,6 @@ class OutputElement extends BaseElement {
 
   @override
   BaseElement evaluate(Memory stack, List<ASTNode> exprs) {
-    if (exprs.length != 1) {
-      throw Exception("Unexpected number of expressions");
-    }
-
-    var expression = exprs.single;
-    dynamic value = expression.value;
-    if (expression.type == ASTNodeType.identifier) {
-      value = (value as Wrapper).value;
-    }
-
-    stack.setHiddenData("output_buffer", value.toString());
-
     return nextElement;
   }
 
@@ -38,4 +25,11 @@ class OutputElement extends BaseElement {
     expr = properties.single as String;
   }
 
+  @override
+  List<String?> get expr => ["output(${super.expr.single})"];
+
+  @override
+  String toString() {
+    return super.expr.single ?? "Output";
+  }
 }
