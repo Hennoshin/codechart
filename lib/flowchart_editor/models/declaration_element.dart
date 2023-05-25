@@ -70,7 +70,9 @@ class DeclarationElement extends BaseElement {
     varType = properties[1];
     isArray = properties[2];
 
-    if (isArray && properties.length != 4) {
+    if (!isArray) return;
+
+    if (properties.length != 4) {
       throw Exception("Expected array size properties");
     }
     if (properties[3] is! int) {
