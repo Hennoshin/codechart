@@ -4,9 +4,11 @@ import 'package:code_chart/flowchart_editor/models/base_element.dart';
 import 'package:code_chart/flowchart_editor/models/branching_element.dart';
 import 'package:code_chart/flowchart_editor/models/declaration_element.dart';
 import 'package:code_chart/flowchart_editor/models/flowchart_program.dart';
+import 'package:code_chart/flowchart_editor/view_models/flowchart_viewmodel.dart';
 import 'package:flutter/material.dart';
 
 import '../models/flowchart.dart';
+import '../models/output_element.dart';
 
 class FlowchartEditorViewModel extends ChangeNotifier {
   FlowchartProgram mainProgram;
@@ -46,7 +48,7 @@ class FlowchartEditorViewModel extends ChangeNotifier {
     addElementIndex = index;
   }
 
-  /// TODO: Move this logic to a [BaseElement] factory
+  /// TODO: Move this logic to a [BaseElement] factory and to [FlowchartViewModel]
   void addElement(int elementType) {
     BaseElement newElement;
     switch (elementType) {
@@ -59,7 +61,7 @@ class FlowchartEditorViewModel extends ChangeNotifier {
         break;
 
       case 2:
-        newElement = BranchingElement(null);
+        newElement = OutputElement(null);
         break;
       default:
         throw Exception("Unknown type");
