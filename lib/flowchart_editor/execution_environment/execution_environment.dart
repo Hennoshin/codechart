@@ -26,13 +26,22 @@ class _StackAST {
   int get currentPointer => lastIndex - offset;
 }
 
+// TODO: Separate the binary operators into another class
 class ExecutionEnvironment {
-  List<Memory> memoryStack;
-  Map<String, FunctionFlowchart> functionTable;
+  final List<Memory> memoryStack;
+  final Map<String, FunctionFlowchart> functionTable;
   BaseElement currentElement;
   List<_StackAST> _currentAST = [];
 
-  ExecutionEnvironment(this.currentElement, this.functionTable) : memoryStack = [Memory("Main")];
+  late Map<String, Function> _predefinedFunctions;
+  bool _expectingInput = false;
+  final List<String> _consoleBuffer = [];
+
+  ExecutionEnvironment(this.currentElement, this.functionTable) : memoryStack = [Memory("Main")] {
+    _predefinedFunctions = {
+      "output": consoleOutput
+    };
+  }
 
   void createNewMemoryStack(String name) {
     memoryStack.add(Memory(name));
@@ -53,15 +62,6 @@ class ExecutionEnvironment {
     currentElement = topStack.hiddenVariables["lastElement"]!;
 
     return topStack.hiddenVariables["lastASTIndex"]!;
-  }
-
-  void runElement() {
-    List<ASTNode> exprResults = [];
-    for (String? expr in currentElement.expr) {
-      ASTNode ast = Parser.parseRightToLeftS(null, Lexer.lex(expr!), Parser.opPrecedenceGroup[9]!, [], 9);
-      exprResults.add(interpretAST(ast));
-    }
-    currentElement = currentElement.evaluate(topStack, exprResults);
   }
 
   bool stepRunElement() {
@@ -104,7 +104,8 @@ class ExecutionEnvironment {
         }
         
         if (node.type == ASTNodeType.identifier && node.value is String) {
-          Object? programObject = topStack.containsVariable(node.value as String) ? topStack.getData(node.value as String) : functionTable[node.value];
+          Object? programObject = _predefinedFunctions[node.value];
+          programObject ??= topStack.containsVariable(node.value as String) ? topStack.getData(node.value as String) : functionTable[node.value];
           if (programObject == null) {
             throw Exception("Unknown variable. The identifier is neither a variable nor a function, ${currentElement.expr}");
           }
@@ -116,48 +117,12 @@ class ExecutionEnvironment {
         if (node.type == ASTNodeType.operator) {
           switch (node.value) {
             case "fcall":
-              int addOffset = ast.ast.indexWhere((element) => element.value is FunctionFlowchart, ast.currentPointer) - ast.currentPointer;
-              FunctionFlowchart func = ast.removeFromCurrentPosition(addOffset).value as FunctionFlowchart;
-              addOffset -= 1;
-
-              if (func.argList.length != addOffset) {
-                throw Exception("Invalid function call to ${func.name}, expected ${func.argList.length} arguments, $addOffset given");
+              int addOffset = ast.ast.indexWhere((element) => (element.value is FunctionFlowchart) || (element.value is Function), ast.currentPointer) - ast.currentPointer;
+              if (ast.ast[ast.currentPointer + addOffset] is FunctionFlowchart) {
+                return _flowchartFunctionCall(ast, addOffset);
               }
-              Memory currentMemory = topStack;
-              createNewMemoryStack(func.name);
-
-              for (var farg in func.argList) {
-                ASTNode args = ast.removeFromCurrentPosition(addOffset);
-                ASTNode exposed = convertIdentifierToLiteral(args);
-                if (exposed.value.runtimeType != dataTypeMap[farg.type]!) {
-                  throw Exception("erro");
-                }
-
-                if (farg.type == DataType.integer) {
-                  topStack.addNewVariables<int>(farg.name);
-                }
-                if (farg.type == DataType.real) {
-                  topStack.addNewVariables<double>(farg.name);
-                }
-                if (farg.type == DataType.boolean) {
-                  topStack.addNewVariables<bool>(farg.name);
-                }
-                if (farg.type == DataType.string) {
-                  topStack.addNewVariables<String>(farg.name);
-                }
-                var wrapper = topStack.getData(farg.name);
-                topStack.assignVariable(wrapper, args.value);
-
-                addOffset -= 1;
-              }
-
-              int temp = _currentAST.indexOf(ast);
-              currentMemory.hiddenVariables["lastASTIndex"] = temp;
-              currentMemory.hiddenVariables["lastAST"] = _currentAST;
-              currentMemory.hiddenVariables["lastElement"] = currentElement;
-              _currentAST = [];
-
-              return func.startElement;
+              _predefinedFunctionCall(ast, addOffset);
+              break;
 
             case "return":
               _functionReturn(ast);
@@ -201,82 +166,11 @@ class ExecutionEnvironment {
       }
     }
     
-    List<ASTNode> results = _currentAST.map((e) => e.ast.single).toList();
+    List<ASTNode> results = _currentAST.map((e) => e.ast.isNotEmpty ? e.ast.single : ASTNode.empty()).toList();
     var element = currentElement.evaluate(topStack, results);
     _currentAST = [];
     return element;
   }
-
-
-  ASTNode interpretAST(ASTNode ast) {
-    List<ASTNode> results = [];
-    for (ASTNode children in ast.children) {
-      results.add(interpretAST(children));
-    }
-
-    if (ast.type == ASTNodeType.literal) {
-      return ast;
-    }
-
-    if (ast.type == ASTNodeType.identifier && ast.value.runtimeType == String) {
-
-      Object? programObject = topStack.containsVariable(ast.value as String) ? topStack.getData(ast.value as String) : functionTable[ast.value];
-      if (programObject == null) {
-        throw Exception("Unknown variable. The identifier is neither a variable nor a function");
-      }
-      return ASTNode(ASTNodeType.identifier, programObject, programObject.runtimeType);
-    }
-
-    if (ast.type == ASTNodeType.operator) {
-      ASTNode leftNode;
-      ASTNode rightNode;
-      switch (ast.value) {
-        case "fcall":
-          leftNode = results.first;
-          if (leftNode is! FunctionFlowchart) {
-            throw Exception("Function identifier expected");
-          }
-
-          break;
-
-        case "+":
-          leftNode = convertIdentifierToLiteral(results.first);
-          rightNode = convertIdentifierToLiteral(results.last);
-          return addOperator(leftNode, rightNode);
-
-        case "-":
-          leftNode = convertIdentifierToLiteral(results.first);
-          rightNode = convertIdentifierToLiteral(results.last);
-          return minusOperator(leftNode, rightNode);
-
-        case "*":
-          leftNode = convertIdentifierToLiteral(results.first);
-          rightNode = convertIdentifierToLiteral(results.last);
-          return multiplicationOperator(leftNode, rightNode);
-
-        case "/":
-          leftNode = convertIdentifierToLiteral(results.first);
-          rightNode = convertIdentifierToLiteral(results.last);
-          return divisionOperator(leftNode, rightNode);
-
-        case "%":
-          leftNode = convertIdentifierToLiteral(results.first);
-          rightNode = convertIdentifierToLiteral(results.last);
-          return moduloOperator(leftNode, rightNode);
-
-        case ">=":
-          leftNode = convertIdentifierToLiteral(results.first);
-          rightNode = convertIdentifierToLiteral(results.last);
-          return moreThanOrEqualOperator(leftNode, rightNode);
-
-        default:
-          throw Exception("Unknown Operator");
-      }
-    }
-
-    throw Exception("Unknown error, this should not happen");
-  }
-
 
   ASTNode convertIdentifierToLiteral(ASTNode operand) {
     if (operand.type == ASTNodeType.literal) {
@@ -309,6 +203,63 @@ class ExecutionEnvironment {
     int index = loadExecutionState();
     var stack = _currentAST[index];
     stack.ast[stack.currentPointer] = returnVal ?? ASTNode.empty();
+  }
+
+  BaseElement _flowchartFunctionCall(_StackAST ast, int addOffset) {
+    FunctionFlowchart func = ast.removeFromCurrentPosition(addOffset).value as FunctionFlowchart;
+    addOffset -= 1;
+
+    if (func.argList.length != addOffset) {
+      throw Exception("Invalid function call to ${func.name}, expected ${func.argList.length} arguments, $addOffset given");
+    }
+    Memory currentMemory = topStack;
+    createNewMemoryStack(func.name);
+
+    for (var farg in func.argList) {
+      ASTNode args = ast.removeFromCurrentPosition(addOffset);
+      ASTNode exposed = convertIdentifierToLiteral(args);
+      if (exposed.value.runtimeType != dataTypeMap[farg.type]!) {
+        throw Exception("erro");
+      }
+
+      if (farg.type == DataType.integer) {
+        topStack.addNewVariables<int>(farg.name);
+      }
+      if (farg.type == DataType.real) {
+        topStack.addNewVariables<double>(farg.name);
+      }
+      if (farg.type == DataType.boolean) {
+        topStack.addNewVariables<bool>(farg.name);
+      }
+      if (farg.type == DataType.string) {
+        topStack.addNewVariables<String>(farg.name);
+      }
+      var wrapper = topStack.getData(farg.name);
+      topStack.assignVariable(wrapper, args.value);
+
+      addOffset -= 1;
+    }
+
+    int temp = _currentAST.indexOf(ast);
+    currentMemory.hiddenVariables["lastASTIndex"] = temp;
+    currentMemory.hiddenVariables["lastAST"] = _currentAST;
+    currentMemory.hiddenVariables["lastElement"] = currentElement;
+    _currentAST = [];
+
+    return func.startElement;
+  }
+
+  void _predefinedFunctionCall(_StackAST ast, int addOffset) {
+    Function function = ast.removeFromCurrentPosition(addOffset).value as Function;
+    addOffset -= 1;
+
+    List<ASTNode> arguments;
+    arguments = ast.ast.sublist(ast.currentPointer + 1, ast.currentPointer + addOffset + 1);
+    ast.ast.removeRange(ast.currentPointer + 1, ast.currentPointer + addOffset + 1);
+    ast.offset -= addOffset;
+
+    ASTNode? returnValue = function(arguments);
+    returnValue == null ? ast.removeFromCurrentPosition() : ast.ast[ast.currentPointer] = returnValue;
   }
 
   /*
@@ -572,156 +523,24 @@ class ExecutionEnvironment {
     return ASTNode(ASTNodeType.literal, result, result.runtimeType);
   }
 
-  /*
-  ASTNode addOperator(ASTNode leftOp, ASTNode rightOp) {
-    if (leftOp.valueType == TokenType.identifier) {
-      leftOp = varToNodeValue(leftOp, topStack);
+  ASTNode? consoleOutput(List<ASTNode> output) {
+    ASTNode node = output.single;
+    dynamic value = node.value;
+    if (node.type == ASTNodeType.identifier) {
+      value = (value as Wrapper).value;
     }
 
-    if (rightOp.valueType == TokenType.identifier) {
-      rightOp = varToNodeValue(rightOp, topStack);
-    }
+    _consoleBuffer.add(value.toString());
 
-    if (leftOp.valueType == TokenType.numberLiteral) {
-      if (rightOp.valueType == TokenType.numberLiteral) {
-        String value = (int.parse(leftOp.value) + int.parse(rightOp.value)).toString();
-        return ASTNode(ASTNodeType.variable, value, TokenType.numberLiteral);
-      }
-
-      if (rightOp.valueType == TokenType.floatLiteral) {
-        String value = (double.parse(leftOp.value) + double.parse(rightOp.value)).toString();
-        return ASTNode(ASTNodeType.variable, value, TokenType.floatLiteral);
-      }
-    }
-
-    if (leftOp.valueType == TokenType.floatLiteral && (rightOp.valueType == TokenType.floatLiteral || rightOp.valueType == TokenType.numberLiteral)) {
-      String value = (double.parse(leftOp.value) + double.parse(rightOp.value)).toString();
-      return ASTNode(ASTNodeType.variable, value, TokenType.floatLiteral);
-    }
-
-    if (leftOp.valueType == TokenType.stringLiteral && rightOp.valueType == TokenType.stringLiteral) {
-      String value = (leftOp.value.substring(0, leftOp.value.length - 1) + rightOp.value.substring(1));
-      return ASTNode(ASTNodeType.variable, value, TokenType.stringLiteral);
-    }
-
-    throw Exception("Unexpected operands type. Expected value is STRING + STRING or NUMBER + NUMBER");
+    return null;
   }
 
-  ASTNode minusOperator(ASTNode leftOp, ASTNode rightOp) {
-    if (leftOp.valueType == TokenType.identifier) {
-      leftOp = varToNodeValue(leftOp, topStack);
-    }
-
-    if (rightOp.valueType == TokenType.identifier) {
-      rightOp = varToNodeValue(rightOp, topStack);
-    }
-
-    if (leftOp.valueType == TokenType.numberLiteral) {
-      if (rightOp.valueType == TokenType.numberLiteral) {
-        String value = (int.parse(leftOp.value) - int.parse(rightOp.value)).toString();
-        return ASTNode(ASTNodeType.variable, value, TokenType.numberLiteral);
-      }
-
-      if (rightOp.valueType == TokenType.floatLiteral) {
-        String value = (double.parse(leftOp.value) - double.parse(rightOp.value)).toString();
-        return ASTNode(ASTNodeType.variable, value, TokenType.floatLiteral);
-      }
-    }
-
-    if (leftOp.valueType == TokenType.floatLiteral && (rightOp.valueType == TokenType.floatLiteral || rightOp.valueType == TokenType.numberLiteral)) {
-      String value = (double.parse(leftOp.value) - double.parse(rightOp.value)).toString();
-      return ASTNode(ASTNodeType.variable, value, TokenType.floatLiteral);
-    }
-
-    throw Exception("Unexpected operands type. Expected value is NUMBER - NUMBER");
+  void clearConsole() {
+    _consoleBuffer.clear();
   }
-
-  ASTNode multiplicationOperator(ASTNode leftOp, ASTNode rightOp) {
-    if (leftOp.valueType == TokenType.identifier) {
-      leftOp = varToNodeValue(leftOp, topStack);
-    }
-
-    if (rightOp.valueType == TokenType.identifier) {
-      rightOp = varToNodeValue(rightOp, topStack);
-    }
-
-    if (leftOp.valueType == TokenType.numberLiteral) {
-      if (rightOp.valueType == TokenType.numberLiteral) {
-        String value = (int.parse(leftOp.value) * int.parse(rightOp.value)).toString();
-        return ASTNode(ASTNodeType.variable, value, TokenType.numberLiteral);
-      }
-
-      if (rightOp.valueType == TokenType.floatLiteral) {
-        String value = (double.parse(leftOp.value) * double.parse(rightOp.value)).toString();
-        return ASTNode(ASTNodeType.variable, value, TokenType.floatLiteral);
-      }
-    }
-
-    if (leftOp.valueType == TokenType.floatLiteral && (rightOp.valueType == TokenType.floatLiteral || rightOp.valueType == TokenType.numberLiteral)) {
-      String value = (double.parse(leftOp.value) * double.parse(rightOp.value)).toString();
-      return ASTNode(ASTNodeType.variable, value, TokenType.floatLiteral);
-    }
-
-    throw Exception("Unexpected operands type. Expected value is NUMBER * NUMBER");
-  }
-
-  ASTNode divisionOperator(ASTNode leftOp, ASTNode rightOp) {
-    if (leftOp.valueType == TokenType.identifier) {
-      leftOp = varToNodeValue(leftOp, topStack);
-    }
-
-    if (rightOp.valueType == TokenType.identifier) {
-      rightOp = varToNodeValue(rightOp, topStack);
-    }
-
-    if (leftOp.valueType == TokenType.numberLiteral) {
-      if (rightOp.valueType == TokenType.numberLiteral) {
-        String value = (int.parse(leftOp.value) ~/ int.parse(rightOp.value)).toString();
-        return ASTNode(ASTNodeType.variable, value, TokenType.numberLiteral);
-      }
-
-      if (rightOp.valueType == TokenType.floatLiteral) {
-        String value = (double.parse(leftOp.value) / double.parse(rightOp.value)).toString();
-        return ASTNode(ASTNodeType.variable, value, TokenType.floatLiteral);
-      }
-    }
-
-    if (leftOp.valueType == TokenType.floatLiteral && (rightOp.valueType == TokenType.floatLiteral || rightOp.valueType == TokenType.numberLiteral)) {
-      String value = (double.parse(leftOp.value) / double.parse(rightOp.value)).toString();
-      return ASTNode(ASTNodeType.variable, value, TokenType.floatLiteral);
-    }
-
-    throw Exception("Unexpected operands type. Expected value is NUMBER / NUMBER");
-  }
-
-
-  ASTNode varToNodeValue(ASTNode operand, Memory memory) {
-    if (operand.type != ASTNodeType.variable || operand.valueType != TokenType.identifier) throw Exception("Unexpected function call, unexpected node type");
-
-    ImmediateData val = memory.getData(operand.value);
-    if (val.value == null) {
-      throw Exception("Variable ${operand.value} has not been initialized");
-    }
-
-    TokenType valType;
-    if (val.type == DataType.string) {
-      valType = TokenType.stringLiteral;
-    } else if (val.type == DataType.float) {
-      valType = TokenType.floatLiteral;
-    } else if (val.type == DataType.integer) {
-      valType = TokenType.numberLiteral;
-    } else if (val.type == DataType.boolean) {
-      valType = TokenType.boolean;
-    } else {
-      valType = TokenType.identifier;
-    }
-
-    return ASTNode(ASTNodeType.variable, val.value!, valType);
-  }
-   */
-
 
   Memory get topStack => memoryStack.last;
 
-
+  bool get isExpectingInput => _expectingInput;
+  List<String> get outputBuffer => _consoleBuffer;
 }
