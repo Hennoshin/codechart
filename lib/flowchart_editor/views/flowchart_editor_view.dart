@@ -1,3 +1,4 @@
+import 'package:code_chart/flowchart_editor/view_models/console_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/view_models/flowchart_editor_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/view_models/flowchart_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/view_models/memory_viewmodel.dart';
@@ -5,6 +6,8 @@ import 'package:code_chart/flowchart_editor/views/flowchart_view.dart';
 import 'package:code_chart/flowchart_editor/views/memory_view.dart';
 import "package:flutter/material.dart";
 import 'package:provider/provider.dart';
+
+import 'console_view.dart';
 
 class FlowchartEditorView extends StatefulWidget {
 
@@ -21,53 +24,67 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
     var viewModel = context.watch<FlowchartEditorViewModel>();
     var programName = viewModel.programName;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(programName),
-      ),
-      body: Center(
-        child: Container(
-          padding: const EdgeInsets.all(10.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              ChangeNotifierProxyProvider<FlowchartEditorViewModel, FlowchartViewModel>(
-                create: (_) => FlowchartViewModel(viewModel.currentFlowchart),
-                update: (_, flowchartEditorViewModel, fvm) => fvm!..update(flowchartEditorViewModel),
-                child: const FlowchartView(),
-              ),
-              ChangeNotifierProxyProvider<FlowchartEditorViewModel, MemoryViewModel>(
-                create: (_) => MemoryViewModel(),
-                update: (_, flowchartEditorViewModel, memoryVm) => memoryVm!..update(flowchartEditorViewModel),
-                child: const MemoryView(),
-              )
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(programName),
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.one_k)),
+              Tab(icon: Icon(Icons.one_k)),
+              Tab(icon: Icon(Icons.one_k))
             ],
-          )
+          ),
         ),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        child: Container(
-          padding: const EdgeInsets.all(5.0),
-          child: Row(
-            children: <Widget>[
-              const _FlowchartExecutionControl(),
-              ElevatedButton(
-                  onPressed: () {
-                    context.read<FlowchartEditorViewModel>().addElement(0);
-                  },
-                  child: const Text("Element 1")),
-              ElevatedButton(
-                  onPressed: () {
-                    context.read<FlowchartEditorViewModel>().addElement(1);
-                  },
-                  child: const Text("Element 2")),
-              ElevatedButton(
-                  onPressed: () {
-                    context.read<FlowchartEditorViewModel>().addElement(2);
-                  },
-                  child: const Text("Element 3")),
-              const _ToolsRow()
-            ],
+        body: Center(
+          child: Container(
+              padding: const EdgeInsets.all(10.0),
+              child: TabBarView(
+                children: <Widget>[
+                  ChangeNotifierProxyProvider<FlowchartEditorViewModel, FlowchartViewModel>(
+                    create: (_) => FlowchartViewModel(viewModel.currentFlowchart),
+                    update: (_, flowchartEditorViewModel, fvm) => fvm!..update(flowchartEditorViewModel),
+                    child: const FlowchartView(),
+                  ),
+                  ChangeNotifierProxyProvider<FlowchartEditorViewModel, MemoryViewModel>(
+                    create: (_) => MemoryViewModel(),
+                    update: (_, flowchartEditorViewModel, memoryVm) => memoryVm!..update(flowchartEditorViewModel),
+                    child: const MemoryView(),
+                  ),
+                  ChangeNotifierProxyProvider<FlowchartEditorViewModel, ConsoleViewModel>(
+                    create: (_) => ConsoleViewModel(),
+                    update: (_, flowchartEditorViewModel, consoleVm) => consoleVm!..update(flowchartEditorViewModel),
+                    child: const ConsoleView(),
+                  )
+                ],
+              )
+          ),
+        ),
+        bottomNavigationBar: BottomAppBar(
+          child: Container(
+            padding: const EdgeInsets.all(5.0),
+            child: Row(
+              children: <Widget>[
+                const _FlowchartExecutionControl(),
+                ElevatedButton(
+                    onPressed: () {
+                      context.read<FlowchartEditorViewModel>().addElement(0);
+                    },
+                    child: const Text("Element 1")),
+                ElevatedButton(
+                    onPressed: () {
+                      context.read<FlowchartEditorViewModel>().addElement(1);
+                    },
+                    child: const Text("Element 2")),
+                ElevatedButton(
+                    onPressed: () {
+                      context.read<FlowchartEditorViewModel>().addElement(2);
+                    },
+                    child: const Text("Element 3")),
+                const _ToolsRow()
+              ],
+            ),
           ),
         ),
       ),
