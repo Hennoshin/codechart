@@ -7,7 +7,7 @@ class TerminalElement extends BaseElement {
   String? placeholder;
 
   TerminalElement.start(this.placeholder) : _isEndTerminal = false, super.empty();
-  TerminalElement.end(this.placeholder, [String? exp]) : _isEndTerminal = true, super("return ${exp ?? ""}");
+  TerminalElement.end(this.placeholder, [String? exp]) : _isEndTerminal = true, super(exp);
 
   @override
   BaseElement evaluate(Memory stack, List<ASTNode> exprs) {
@@ -15,12 +15,9 @@ class TerminalElement extends BaseElement {
   }
 
   @override
-  List<String?> get expr => _isEndTerminal ? super.expr : [];
+  List<String?> get exprList => _isEndTerminal ? ["return ${baseExpr ?? ""}"] : [];
   @override
   BaseElement get nextElement => _isEndTerminal ? this : super.nextElement;
-
-  @override
-  set expr(exp) => "return ${exp ?? ""}";
 
   /// Set properties for the assignment element
   /// First [properties] accepts [String] as the return expression
@@ -33,7 +30,7 @@ class TerminalElement extends BaseElement {
       throw Exception("Expected String for the properties");
     }
 
-    expr = properties.first as String;
+    baseExpr = properties.first as String;
   }
 
   @override

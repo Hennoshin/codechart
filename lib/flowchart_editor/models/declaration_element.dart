@@ -11,7 +11,7 @@ class DeclarationElement extends BaseElement {
 
   @override
   BaseElement evaluate(Memory stack, List<ASTNode> exprs) {
-    String expr = super.expr.first!;
+    String expr = baseExpr!;
     Function addVar = stack.addNewVariables;
 
     switch (_type) {
@@ -39,7 +39,7 @@ class DeclarationElement extends BaseElement {
   }
 
   @override
-  List<String?> get expr => [];
+  List<String?> get exprList => [];
   DataType get varType => _type;
   bool get isArray => _isArray;
 
@@ -66,7 +66,7 @@ class DeclarationElement extends BaseElement {
       throw Exception("Expected bool for the third properties");
     }
 
-    expr = properties[0];
+    baseExpr = properties[0];
     varType = properties[1];
     isArray = properties[2];
 
@@ -84,6 +84,6 @@ class DeclarationElement extends BaseElement {
 
   @override
   String toString() {
-    return super.expr.first ?? "Declaration";
+    return baseExpr ?? "Declaration";
   }
 }

@@ -40,7 +40,8 @@ class AssignmentElement extends BaseElement {
   }
 
   @override
-  List<String?> get expr => [_assignmentExpr] + super.expr;
+  List<String?> get exprList => [_assignmentExpr, baseExpr];
+  String? get assignmentExpr => _assignmentExpr;
 
   set assignmentExpr(exp) => _assignmentExpr = exp;
 
@@ -60,12 +61,12 @@ class AssignmentElement extends BaseElement {
     }
 
     assignmentExpr = properties.first as String;
-    expr = properties.last as String;
+    baseExpr = properties.last as String;
   }
 
   @override
   String toString() {
-    String str = (_assignmentExpr ?? "") + (super.expr.first ?? "");
+    String str = (_assignmentExpr ?? "") + (baseExpr ?? "");
     return str != "" ? str : "Assignment";
   }
 }

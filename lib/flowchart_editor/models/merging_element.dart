@@ -11,7 +11,7 @@ class MergingElement extends BaseElement {
   }
 
   @override
-  List<String?> get expr => [];
+  List<String?> get exprList => [];
 
   @override
   void setProperties(List properties) {

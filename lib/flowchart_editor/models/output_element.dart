@@ -22,14 +22,14 @@ class OutputElement extends BaseElement {
       throw Exception("Expecting String as the first properties");
     }
 
-    expr = properties.single as String;
+    baseExpr = properties.single as String;
   }
 
   @override
-  List<String?> get expr => ["output(${super.expr.single})"];
+  List<String?> get exprList => ["output($baseExpr)"];
 
   @override
   String toString() {
-    return super.expr.single ?? "Output";
+    return baseExpr ?? "Output";
   }
 }

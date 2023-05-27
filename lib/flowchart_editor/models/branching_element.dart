@@ -67,6 +67,9 @@ class BranchingElement extends BaseElement {
       throw Exception("Expected String for the properties");
     }
 
-    expr = properties.first as String;
+    baseExpr = properties.first as String;
   }
+
+  @override
+  List<String?> get exprList => [baseExpr];
 }
