@@ -17,6 +17,6 @@ class FunctionFlowchart extends Flowchart {
   FunctionFlowchart(this.name) : super(name);
 
   void setReturn(String expr) {
-    elements[1].expr = "return $expr";
+    elements[1].baseExpr = expr;
   }
 }
