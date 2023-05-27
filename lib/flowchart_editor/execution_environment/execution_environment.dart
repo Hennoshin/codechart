@@ -66,7 +66,7 @@ class ExecutionEnvironment {
 
   bool stepRunElement() {
     if (_currentAST.isEmpty) {
-      for (String? expr in currentElement.expr) {
+      for (String? expr in currentElement.exprList) {
         ASTNode ast = Parser.parseStart(Lexer.lex(expr!));
         _StackAST sast = _StackAST();
         sast.ast = convertASTToStack(ast);
@@ -107,7 +107,7 @@ class ExecutionEnvironment {
           Object? programObject = _predefinedFunctions[node.value];
           programObject ??= topStack.containsVariable(node.value as String) ? topStack.getData(node.value as String) : functionTable[node.value];
           if (programObject == null) {
-            throw Exception("Unknown variable. The identifier is neither a variable nor a function, ${currentElement.expr}");
+            throw Exception("Unknown variable. The identifier is neither a variable nor a function, ${node.value}");
           }
 
           ast.ast[ast.currentPointer] = ASTNode(ASTNodeType.identifier, programObject, programObject.runtimeType);
