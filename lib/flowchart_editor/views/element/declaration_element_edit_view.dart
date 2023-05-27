@@ -26,7 +26,7 @@ class _DeclarationElementEditViewState extends State<DeclarationElementEditView>
     _isArray = widget._element.isArray;
     _arraySize = widget._element.arraySize;
 
-    _varNameController = TextEditingController(text: widget._element.toString());
+    _varNameController = TextEditingController(text: widget._element.baseExpr);
   }
 
   @override

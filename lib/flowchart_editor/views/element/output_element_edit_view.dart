@@ -17,7 +17,7 @@ class _OutputElementEditViewState extends State<OutputElementEditView> {
   void initState() {
     super.initState();
 
-    _leftOpController = TextEditingController(text: widget._element.toString());
+    _leftOpController = TextEditingController(text: widget._element.baseExpr);
   }
 
   @override
