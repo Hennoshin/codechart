@@ -51,20 +51,23 @@ class Flowchart {
 
   void addElement2(BaseElement newElement, String targetLocation) {
     List<int> indexes = targetLocation.split(".").map((e) => int.parse(e)).toList();
-    int prevIndex = indexes.removeLast() - 1;
+    int index = indexes.removeLast();
+    int prevIndex = index - 1;
     int? branch;
     if (indexes.isNotEmpty) {
       branch = indexes.removeLast();
     }
 
     // Calculate previous element index before the current target
-    String prevTarget = targetLocation.replaceRange(targetLocation.length - 1, null, prevIndex.toString());
-    if (prevIndex == 0 && targetLocation.length > 1) {
+    String indexString = index.toString();
+    String prevIndexString = prevIndex.toString();
+    String prevTarget = targetLocation.replaceRange(targetLocation.length - indexString.length, null, prevIndexString);
+    if (prevIndex == 0 && targetLocation.contains(".")) {
       prevTarget = prevTarget.substring(0, prevTarget.length - 4);
     }
 
     BaseElement prevElement = elements2[prevTarget]!;
-    if (prevIndex == 0 && targetLocation.length > 1) {
+    if (prevIndex == 0 && targetLocation.contains(".")) {
       if (branch! == 0) {
         newElement.nextElement = (prevElement as BranchingElement).trueBranchNextElement;
         prevElement.trueBranchNextElement = newElement;
@@ -101,19 +104,22 @@ class Flowchart {
     BaseElement currentElement = elements2[targetLocation]!;
 
     List<int> indexes = targetLocation.split(".").map((e) => int.parse(e)).toList();
-    int prevIndex = indexes.removeLast() - 1;
+    int index = indexes.removeLast();
+    int prevIndex = index - 1;
     int? branch;
     if (indexes.isNotEmpty) {
       branch = indexes.removeLast();
     }
 
-    String prevTarget = targetLocation.replaceRange(targetLocation.length - 1, null, prevIndex.toString());
-    if (prevIndex == 0 && targetLocation.length > 1) {
+    String indexString = index.toString();
+    String prevIndexString = prevIndex.toString();
+    String prevTarget = targetLocation.replaceRange(targetLocation.length - indexString.length, null, prevIndexString);
+    if (prevIndex == 0 && targetLocation.contains(".")) {
       prevTarget = prevTarget.substring(0, prevTarget.length - 4);
     }
 
     BaseElement prevElement = elements2[prevTarget]!;
-    if (prevIndex == 0 && targetLocation.length > 1) {
+    if (prevIndex == 0 && targetLocation.contains(".")) {
       if (branch! == 0) {
         (prevElement as BranchingElement).trueBranchNextElement = currentElement.nextElement;
       }
