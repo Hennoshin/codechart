@@ -34,12 +34,16 @@ class ExecutionEnvironment {
   List<_StackAST> _currentAST = [];
 
   late Map<String, Function> _predefinedFunctions;
+
   bool _expectingInput = false;
+  String? _inputBuffer;
+  Wrapper? _inputVariable;
   final List<String> _consoleBuffer = [];
 
   ExecutionEnvironment(this.currentElement, this.functionTable) : memoryStack = [Memory("Main")] {
     _predefinedFunctions = {
-      "output": consoleOutput
+      "output": consoleOutput,
+      "input": inputConsole,
     };
   }
 
@@ -65,6 +69,10 @@ class ExecutionEnvironment {
   }
 
   bool stepRunElement() {
+    if (_expectingInput) {
+      return memoryStack.isNotEmpty;
+    }
+
     if (_currentAST.isEmpty) {
       for (String? expr in currentElement.exprList) {
         ASTNode ast = Parser.parseStart(Lexer.lex(expr!));
@@ -537,6 +545,52 @@ class ExecutionEnvironment {
 
   void clearConsole() {
     _consoleBuffer.clear();
+  }
+
+  ASTNode? inputConsole(List<ASTNode> params) {
+    ASTNode node = params.first;
+    if (node.type != ASTNodeType.identifier) {
+      throw Exception("Input variable must be a variable");
+    }
+
+    Wrapper variable = node.value as Wrapper;
+    _inputVariable = variable;
+
+    if (params.length == 2) {
+      consoleOutput([params.last]);
+    }
+
+    _expectingInput = true;
+
+    return null;
+  }
+
+  void setInputBuffer(String input) {
+    if (!_expectingInput) {
+      return;
+    }
+
+    Wrapper inputVar = _inputVariable!;
+    switch (inputVar.type) {
+      case String:
+        inputVar.value = input;
+        break;
+
+      case int:
+        inputVar.value = int.parse(input);
+        break;
+
+      case double:
+        inputVar.value = double.parse(input);
+        break;
+
+      case bool:
+        inputVar.value = bool.parse(input);
+        break;
+    }
+
+    _expectingInput = false;
+    _inputVariable = null;
   }
 
   Memory get topStack => memoryStack.last;
