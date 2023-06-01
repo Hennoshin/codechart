@@ -10,7 +10,9 @@ import '../view_models/flowchart_viewmodel.dart';
 import 'element/element_widget.dart';
 
 class FlowchartView extends StatelessWidget {
-  const FlowchartView({Key? key}) : super(key: key);
+  final TransformationController transformationController = TransformationController();
+
+  FlowchartView({Key? key}) : super(key: key);
 
   // TODO: Change it so that it does not rely on recursive, each element is mapped now, figure something out?
   Widget _createFlowchartColumn(BaseElement startElement, [String current = "", bool isBranch = false, MergingElement? endPoint]) {
@@ -31,13 +33,13 @@ class FlowchartView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _createFlowchartColumn(element.trueBranchNextElement, "$current$i.0.", true, element.mergePoint),
-              ElementWidget2(positionIndex: current + i.toString()),
+              ElementWidget(positionIndex: current + i.toString()),
               _createFlowchartColumn(element.falseBranchNextElement, "$current$i.1.", true, element.mergePoint)
             ]
         ));
       }
       else {
-        widgets.add(ElementWidget2(positionIndex: current + i.toString()));
+        widgets.add(ElementWidget(positionIndex: current + i.toString()));
       }
 
       i += 1;
@@ -47,7 +49,7 @@ class FlowchartView extends StatelessWidget {
     }
 
     if (!isBranch) {
-      widgets.add(ElementWidget2(positionIndex: current + i.toString()));
+      widgets.add(ElementWidget(positionIndex: current + i.toString()));
     }
 
     return Column(
@@ -61,7 +63,9 @@ class FlowchartView extends StatelessWidget {
     Flowchart flowchart = context.watch<FlowchartViewModel>().flowchart;
     BaseElement startElement = flowchart.startElement;
 
-    return _createFlowchartColumn(startElement);
+    return InteractiveViewer(
+      child: _createFlowchartColumn(startElement),
+    );
   }
 
 }

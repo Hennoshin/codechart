@@ -31,9 +31,9 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
           title: Text(programName),
           bottom: const TabBar(
             tabs: [
-              Tab(icon: Icon(Icons.one_k)),
-              Tab(icon: Icon(Icons.one_k)),
-              Tab(icon: Icon(Icons.one_k))
+              Tab(icon: Icon(Icons.account_tree)),
+              Tab(icon: Icon(Icons.memory)),
+              Tab(icon: Icon(Icons.wysiwyg))
             ],
           ),
         ),
@@ -45,7 +45,9 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
                   ChangeNotifierProxyProvider<FlowchartEditorViewModel, FlowchartViewModel>(
                     create: (_) => FlowchartViewModel(viewModel.currentFlowchart),
                     update: (_, flowchartEditorViewModel, fvm) => fvm!..update(flowchartEditorViewModel),
-                    child: const FlowchartView(),
+                    child: Center(
+                      child: FlowchartView(),
+                    ),
                   ),
                   ChangeNotifierProxyProvider<FlowchartEditorViewModel, MemoryViewModel>(
                     create: (_) => MemoryViewModel(),
@@ -55,7 +57,7 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
                   ChangeNotifierProxyProvider<FlowchartEditorViewModel, ConsoleViewModel>(
                     create: (_) => ConsoleViewModel(),
                     update: (_, flowchartEditorViewModel, consoleVm) => consoleVm!..update(flowchartEditorViewModel),
-                    child: const ConsoleView(),
+                    child: ConsoleView(),
                   )
                 ],
               )
@@ -71,17 +73,32 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
                     onPressed: () {
                       context.read<FlowchartEditorViewModel>().addElement(0);
                     },
-                    child: const Text("Element 1")),
+                    child: const Text("Element 1")
+                ),
                 ElevatedButton(
                     onPressed: () {
                       context.read<FlowchartEditorViewModel>().addElement(1);
                     },
-                    child: const Text("Element 2")),
+                    child: const Text("Element 2")
+                ),
                 ElevatedButton(
                     onPressed: () {
                       context.read<FlowchartEditorViewModel>().addElement(2);
                     },
-                    child: const Text("Element 3")),
+                    child: const Text("Element 3")
+                ),
+                ElevatedButton(
+                    onPressed: () {
+                      context.read<FlowchartEditorViewModel>().addElement(3);
+                    },
+                    child: const Text("Element 4")
+                ),
+                ElevatedButton(
+                    onPressed: () {
+                      context.read<FlowchartEditorViewModel>().addElement(4);
+                    },
+                    child: const Text("Element 5")
+                ),
                 const _ToolsRow()
               ],
             ),
