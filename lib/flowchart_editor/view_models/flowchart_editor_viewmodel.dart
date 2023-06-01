@@ -4,6 +4,7 @@ import 'package:code_chart/flowchart_editor/models/base_element.dart';
 import 'package:code_chart/flowchart_editor/models/branching_element.dart';
 import 'package:code_chart/flowchart_editor/models/declaration_element.dart';
 import 'package:code_chart/flowchart_editor/models/flowchart_program.dart';
+import 'package:code_chart/flowchart_editor/models/input_element.dart';
 import 'package:code_chart/flowchart_editor/view_models/flowchart_viewmodel.dart';
 import 'package:flutter/material.dart';
 
@@ -63,6 +64,15 @@ class FlowchartEditorViewModel extends ChangeNotifier {
       case 2:
         newElement = OutputElement(null);
         break;
+
+      case 3:
+        newElement = InputElement(null);
+        break;
+
+      case 4:
+        newElement = BranchingElement("trueFalse");
+        break;
+
       default:
         throw Exception("Unknown type");
     }
@@ -92,6 +102,12 @@ class FlowchartEditorViewModel extends ChangeNotifier {
 
   BaseElement? currentRunElement() {
     return mainProgram.runEnv?.currentElement;
+  }
+
+  void setInputBuffer(String input) {
+    mainProgram.runEnv?.setInputBuffer(input);
+
+    notifyListeners();
   }
 
   bool get isFlowchartRunning => mainProgram.isRunning;
