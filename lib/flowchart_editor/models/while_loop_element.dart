@@ -18,4 +18,17 @@ class WhileLoopElement extends BranchingElement {
   set falseBranchNextElement(e) {
     nextElement = e;
   }
+
+  @override
+  WhileLoopElement copyWith() {
+    var newElement = WhileLoopElement(baseExpr);
+    newElement.nextElement = nextElement;
+
+    return newElement;
+  }
+
+  @override
+  String toString() {
+    return "Test while loop";
+  }
 }
