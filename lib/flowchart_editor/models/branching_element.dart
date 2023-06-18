@@ -72,4 +72,14 @@ class BranchingElement extends BaseElement {
 
   @override
   List<String?> get exprList => [baseExpr];
+
+  @override
+  BranchingElement copyWith() {
+    var newElement = BranchingElement(baseExpr);
+    newElement.falseBranchNextElement = newElement.mergePoint;
+    newElement.trueBranchNextElement = newElement.mergePoint;
+    newElement.nextElement = nextElement;
+
+    return newElement;
+  }
 }

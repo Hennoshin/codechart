@@ -37,4 +37,13 @@ class InputElement extends BaseElement {
   String toString() {
     return baseExpr != null ? "Input: $baseExpr" : "Input Element";
   }
+
+  @override
+  InputElement copyWith() {
+    var newElement = InputElement(baseExpr);
+    newElement.prompt = prompt;
+    newElement.nextElement = nextElement;
+
+    return newElement;
+  }
 }

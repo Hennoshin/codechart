@@ -32,4 +32,12 @@ class OutputElement extends BaseElement {
   String toString() {
     return baseExpr ?? "Output";
   }
+
+  @override
+  OutputElement copyWith() {
+    var newElement = OutputElement(baseExpr);
+    newElement.nextElement = nextElement;
+
+    return newElement;
+  }
 }

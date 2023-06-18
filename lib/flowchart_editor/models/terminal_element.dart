@@ -37,4 +37,12 @@ class TerminalElement extends BaseElement {
   String toString() {
     return placeholder ?? "Terminal";
   }
+
+  @override
+  TerminalElement copyWith() {
+    var newElement = _isEndTerminal ? TerminalElement.end(placeholder, baseExpr) : TerminalElement.start(placeholder);
+    newElement.nextElement = nextElement;
+
+    return newElement;
+  }
 }

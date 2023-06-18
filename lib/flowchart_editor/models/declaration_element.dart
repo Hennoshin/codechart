@@ -86,4 +86,12 @@ class DeclarationElement extends BaseElement {
   String toString() {
     return baseExpr ?? "Declaration";
   }
+
+  @override
+  DeclarationElement copyWith() {
+    var newElement = DeclarationElement(baseExpr, _isArray, _type);
+    newElement.nextElement = nextElement;
+
+    return newElement;
+  }
 }

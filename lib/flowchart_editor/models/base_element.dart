@@ -21,6 +21,8 @@ abstract class BaseElement {
     return;
   }
 
+  BaseElement copyWith();
+
   String? get baseExpr => _expr;
   List<String?> get exprList;
   BaseElement get nextElement => _nextElement;

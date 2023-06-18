@@ -69,4 +69,12 @@ class AssignmentElement extends BaseElement {
     String str = (_assignmentExpr ?? "") + (baseExpr ?? "");
     return str != "" ? str : "Assignment";
   }
+
+  @override
+  AssignmentElement copyWith() {
+    var newElement = AssignmentElement(baseExpr, _assignmentExpr);
+    newElement.nextElement = nextElement;
+
+    return newElement;
+  }
 }

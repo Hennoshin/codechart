@@ -17,4 +17,9 @@ class MergingElement extends BaseElement {
   void setProperties(List properties) {
     throw UnsupportedError("Call to this method should not be performed");
   }
+
+  @override
+  BaseElement copyWith() {
+    throw UnsupportedError("MergingElement cannot be cloned as it is part of BranchingElement");
+  }
 }
