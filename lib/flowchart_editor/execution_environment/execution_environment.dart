@@ -36,7 +36,6 @@ class ExecutionEnvironment {
   late Map<String, Function> _predefinedFunctions;
 
   bool _expectingInput = false;
-  String? _inputBuffer;
   Wrapper? _inputVariable;
   final List<String> _consoleBuffer = [];
 
@@ -98,6 +97,7 @@ class ExecutionEnvironment {
     return stack;
   }
 
+  // TODO: Add all operators
   /*
    * Interpret the current element ASTs
    * Expected to consume the current ASTs stack
@@ -164,6 +164,16 @@ class ExecutionEnvironment {
 
             case ">=":
               ASTNode result = _binaryOperator(ast, moreThanOrEqualOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
+            case "==":
+              ASTNode result = _binaryOperator(ast, equalOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
+            case "!=":
+              ASTNode result = _binaryOperator(ast, notEqualOperator);
               ast.ast[ast.currentPointer] = result;
               break;
 
