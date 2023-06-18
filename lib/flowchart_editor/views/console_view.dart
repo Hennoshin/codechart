@@ -26,7 +26,7 @@ class ConsoleView extends StatelessWidget {
                   child: ListView.builder(
                       itemCount: consoleViewModel.outputBuffer.length,
                       itemBuilder: (context, index) => Container(
-                        height: 500,
+                        height: 50,
                         width: 450,
                         child: Text(consoleViewModel.outputBuffer[index]),
                       )
