@@ -19,8 +19,8 @@ class _AssignmentElementEditViewState extends State<AssignmentElementEditView> {
     super.initState();
 
     var element = widget._element;
-    _leftOpController = TextEditingController(text: element.baseExpr);
-    _rightOpController = TextEditingController(text: element.assignmentExpr);
+    _leftOpController = TextEditingController(text: element.assignmentExpr);
+    _rightOpController = TextEditingController(text: element.baseExpr);
   }
 
   @override
