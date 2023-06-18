@@ -1,3 +1,10 @@
+import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
+import 'package:code_chart/flowchart_editor/models/assignment_element.dart';
+import 'package:code_chart/flowchart_editor/models/branching_element.dart';
+import 'package:code_chart/flowchart_editor/models/declaration_element.dart';
+import 'package:code_chart/flowchart_editor/models/input_element.dart';
+import 'package:code_chart/flowchart_editor/models/output_element.dart';
+import 'package:code_chart/flowchart_editor/models/while_loop_element.dart';
 import 'package:code_chart/flowchart_editor/view_models/console_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/view_models/flowchart_editor_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/view_models/flowchart_viewmodel.dart';
@@ -7,6 +14,7 @@ import 'package:code_chart/flowchart_editor/views/memory_view.dart';
 import "package:flutter/material.dart";
 import 'package:provider/provider.dart';
 
+import '../models/base_element.dart';
 import 'console_view.dart';
 
 class FlowchartEditorView extends StatefulWidget {
@@ -19,6 +27,30 @@ class FlowchartEditorView extends StatefulWidget {
 }
 
 class _FlowchartEditorViewState extends State<FlowchartEditorView> {
+  BaseElement _createElement(BaseElement element) {
+    element.nextElement = element;
+    
+    return element;
+  }
+  
+  Widget _buildAddElementWidget({required BaseElement element, required String name}) {
+    return LongPressDraggable<BaseElement>(
+      data: element,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: SizedBox(
+        child: Text(name),
+      ),
+      child: SizedBox(
+        child: Container(
+          margin: const EdgeInsetsDirectional.only(start: 10, end: 10),
+          padding: const EdgeInsetsDirectional.all(5),
+          color: Colors.blue,
+          child: Text(name)
+        )
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var viewModel = context.watch<FlowchartEditorViewModel>();
@@ -69,36 +101,12 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
             child: Row(
               children: <Widget>[
                 const _FlowchartExecutionControl(),
-                ElevatedButton(
-                    onPressed: () {
-                      context.read<FlowchartEditorViewModel>().addElement(0);
-                    },
-                    child: const Text("Element 1")
-                ),
-                ElevatedButton(
-                    onPressed: () {
-                      context.read<FlowchartEditorViewModel>().addElement(1);
-                    },
-                    child: const Text("Element 2")
-                ),
-                ElevatedButton(
-                    onPressed: () {
-                      context.read<FlowchartEditorViewModel>().addElement(2);
-                    },
-                    child: const Text("Element 3")
-                ),
-                ElevatedButton(
-                    onPressed: () {
-                      context.read<FlowchartEditorViewModel>().addElement(3);
-                    },
-                    child: const Text("Element 4")
-                ),
-                ElevatedButton(
-                    onPressed: () {
-                      context.read<FlowchartEditorViewModel>().addElement(4);
-                    },
-                    child: const Text("Element 5")
-                ),
+                _buildAddElementWidget(element: _createElement(DeclarationElement(null, false, DataType.integer)), name: "Declaration Element"),
+                _buildAddElementWidget(element: _createElement(AssignmentElement(null, null)), name: "Assignment Element"),
+                _buildAddElementWidget(element: _createElement(InputElement(null)), name: "Input Element"),
+                _buildAddElementWidget(element: _createElement(OutputElement(null)), name: "Output Element"),
+                _buildAddElementWidget(element: _createElement(BranchingElement(null)), name: "Branching Element"),
+                _buildAddElementWidget(element: _createElement(WhileLoopElement(null)), name: "While-Loop Element"),
                 const _ToolsRow()
               ],
             ),
