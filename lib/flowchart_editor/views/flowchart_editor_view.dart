@@ -14,6 +14,7 @@ import 'package:code_chart/flowchart_editor/views/memory_view.dart';
 import "package:flutter/material.dart";
 import 'package:provider/provider.dart';
 
+import '../../commons/routes.dart';
 import '../models/base_element.dart';
 import 'console_view.dart';
 
@@ -61,6 +62,14 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(programName),
+          actions: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.functions),
+              onPressed: () {
+                Navigator.pushNamed(context, RouteNames.functionManager, arguments: viewModel.mainProgram);
+              },
+            )
+          ],
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.account_tree)),
