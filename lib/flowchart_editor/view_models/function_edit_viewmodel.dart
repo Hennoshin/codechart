@@ -1,5 +1,5 @@
 import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
-import 'package:code_chart/flowchart_editor/view_models/commons/ErrorReportingViewModel.dart';
+import 'package:code_chart/flowchart_editor/view_models/commons/error_reporting_viewmodel.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../models/function_flowchart.dart';
