@@ -4,10 +4,12 @@ import 'package:code_chart/flowchart_editor/views/flowchart_editor_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class FlowchartEditorScreen extends StatelessWidget {
+import 'basic_screen.dart';
+
+class FlowchartEditorScreen extends BasicScreen {
   final FlowchartProgram flowchart = FlowchartProgram("Untitled");
 
-  FlowchartEditorScreen({Key? key}) : super(key: key);
+  FlowchartEditorScreen({super.key, required super.settings});
 
   @override
   Widget build(BuildContext context) {
