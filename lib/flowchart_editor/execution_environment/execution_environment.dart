@@ -126,7 +126,7 @@ class ExecutionEnvironment {
           switch (node.value) {
             case "fcall":
               int addOffset = ast.ast.indexWhere((element) => (element.value is FunctionFlowchart) || (element.value is Function), ast.currentPointer) - ast.currentPointer;
-              if (ast.ast[ast.currentPointer + addOffset] is FunctionFlowchart) {
+              if (ast.ast[ast.currentPointer + addOffset].value is FunctionFlowchart) {
                 return _flowchartFunctionCall(ast, addOffset);
               }
               _predefinedFunctionCall(ast, addOffset);
@@ -207,6 +207,7 @@ class ExecutionEnvironment {
     return ASTNode(ASTNodeType.literal, op.value!, op.runtimeType);
   }
 
+  // TODO: Check whether the return value matched the function return type
   void _functionReturn(_StackAST ast) {
     ASTNode? returnVal;
     if (ast.offset != 0) {
