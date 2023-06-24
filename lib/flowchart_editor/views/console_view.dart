@@ -15,41 +15,34 @@ class ConsoleView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 1000,
-      width: 500,
-      child: Consumer<ConsoleViewModel>(
-        builder: (_, consoleViewModel, __) =>
-            Column(
-              children: <Widget>[
-                Expanded(
-                  child: ListView.builder(
-                      itemCount: consoleViewModel.outputBuffer.length,
-                      itemBuilder: (context, index) => Container(
-                        height: 50,
-                        width: 450,
-                        child: Text(consoleViewModel.outputBuffer[index]),
-                      )
-                  )
-                ),
-                Row(
-                  children: <Widget>[
-                    SizedBox(
-                      width: 450,
-                      child: TextField(controller: _inputController)
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.send),
-                      color: Colors.blue,
-                      onPressed: consoleViewModel.expectingInput ? () {
-                        _inputToConsole(context);
-                      } : null,
+    return Consumer<ConsoleViewModel>(
+      builder: (_, consoleViewModel, __) =>
+          Column(
+            children: <Widget>[
+              Expanded(
+                child: ListView.builder(
+                    itemCount: consoleViewModel.outputBuffer.length,
+                    itemBuilder: (context, index) => Container(
+                      child: Text(consoleViewModel.outputBuffer[index]),
                     )
-                  ],
                 )
-              ],
-            )
-      ),
+              ),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: TextField(controller: _inputController)
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.send),
+                    color: Colors.blue,
+                    onPressed: consoleViewModel.expectingInput ? () {
+                      _inputToConsole(context);
+                    } : null,
+                  )
+                ],
+              )
+            ],
+          )
     );
   }
 
