@@ -19,6 +19,22 @@ class FlowchartProgram {
     functionTable[functionName] = func;
   }
 
+  void changeFunctionName(String functionName, String newName) {
+    if (functionName == newName) return;
+
+    if (!functionTable.containsKey(functionName)) {
+      throw Exception("No function by that name");
+    }
+    if (functionTable.containsKey(newName)) {
+      throw Exception("Function name $newName already existed");
+    }
+
+    FunctionFlowchart functionFlowchart = functionTable[functionName]!;
+    functionFlowchart.name = newName;
+    functionTable[newName] = functionFlowchart;
+    functionTable.remove(functionName);
+  }
+
   void removeFunction(String functionName) {
     if (!functionTable.containsKey(functionName)) {
       throw Exception("No function by that name");
