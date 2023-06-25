@@ -22,6 +22,7 @@ abstract class BaseElement {
   }
 
   BaseElement copyWith();
+  Map<String, dynamic> toJson();
 
   String? get baseExpr => _expr;
   List<String?> get exprList;

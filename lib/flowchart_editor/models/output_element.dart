@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:code_chart/flowchart_editor/execution_environment/memory.dart';
 import 'package:code_chart/flowchart_editor/models/base_element.dart';
 import 'package:code_chart/utility/data_classes.dart';
@@ -39,5 +41,10 @@ class OutputElement extends BaseElement {
     newElement.nextElement = nextElement;
 
     return newElement;
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {"type": 6, "expression": baseExpr};
   }
 }

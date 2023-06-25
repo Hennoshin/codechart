@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'branching_element.dart';
 
 class WhileLoopElement extends BranchingElement {
@@ -30,5 +32,10 @@ class WhileLoopElement extends BranchingElement {
   @override
   String toString() {
     return "Test while loop";
+  }
+
+  @override
+  String toJsonImpl() {
+    return jsonEncode({"type": 4, "expression": baseExpr});
   }
 }

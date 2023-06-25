@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
 import 'package:code_chart/flowchart_editor/execution_environment/memory.dart';
 import 'package:code_chart/flowchart_editor/models/base_element.dart';
@@ -93,5 +95,10 @@ class DeclarationElement extends BaseElement {
     newElement.nextElement = nextElement;
 
     return newElement;
+  }
+  
+  @override
+  Map<String, dynamic> toJson() {
+    return {"type": 1, "dataType": _type.index, "expression": baseExpr, "isArray": _isArray, "arraySize": arraySize};
   }
 }

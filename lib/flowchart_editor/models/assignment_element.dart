@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
@@ -76,5 +77,10 @@ class AssignmentElement extends BaseElement {
     newElement.nextElement = nextElement;
 
     return newElement;
+  }
+  
+  @override
+  Map<String, dynamic> toJson() {
+    return {"type": 2, "leftOp": _assignmentExpr, "rightOp": baseExpr};
   }
 }
