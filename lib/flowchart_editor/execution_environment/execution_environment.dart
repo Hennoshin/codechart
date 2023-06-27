@@ -222,6 +222,21 @@ class ExecutionEnvironment {
               ast.ast[ast.currentPointer] = result;
               break;
 
+            case "|":
+              ASTNode result = _binaryOperator(ast, bitwiseOrOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
+            case "&":
+              ASTNode result = _binaryOperator(ast, bitwiseAndOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
+            case "^":
+              ASTNode result = _binaryOperator(ast, bitwiseXorOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
             default:
               throw Exception("Unknown Operator");
           }
