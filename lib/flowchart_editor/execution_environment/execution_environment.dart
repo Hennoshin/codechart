@@ -137,6 +137,26 @@ class ExecutionEnvironment {
 
               return currentElement;
 
+            case "+n":
+              ASTNode result = _unaryOperator(ast, unaryPlusOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
+            case "-n":
+              ASTNode result = _unaryOperator(ast, unaryMinusOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
+            case "!n":
+              ASTNode result = _unaryOperator(ast, booleanNotOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
+            case "~n":
+              ASTNode result = _unaryOperator(ast, bitwiseNotOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
             case "+":
               ASTNode result = _binaryOperator(ast, addOperator);
               ast.ast[ast.currentPointer] = result;
@@ -167,6 +187,21 @@ class ExecutionEnvironment {
               ast.ast[ast.currentPointer] = result;
               break;
 
+            case "<=":
+              ASTNode result = _binaryOperator(ast, lessThanOrEqualOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
+            case ">":
+              ASTNode result = _binaryOperator(ast, moreThanOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
+            case "<":
+              ASTNode result = _binaryOperator(ast, lessThanOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
             case "==":
               ASTNode result = _binaryOperator(ast, equalOperator);
               ast.ast[ast.currentPointer] = result;
@@ -174,6 +209,16 @@ class ExecutionEnvironment {
 
             case "!=":
               ASTNode result = _binaryOperator(ast, notEqualOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
+            case "&&":
+              ASTNode result = _binaryOperator(ast, logicalAndOperator);
+              ast.ast[ast.currentPointer] = result;
+              break;
+
+            case "||":
+              ASTNode result = _binaryOperator(ast, logicalOrOperator);
               ast.ast[ast.currentPointer] = result;
               break;
 
@@ -279,6 +324,15 @@ class ExecutionEnvironment {
 
     ASTNode? returnValue = function(arguments);
     returnValue == null ? ast.removeFromCurrentPosition() : ast.ast[ast.currentPointer] = returnValue;
+  }
+
+  ASTNode _unaryOperator(_StackAST ast, Function opFunc) {
+    ASTNode node = ast.removeFromCurrentPosition(1);
+
+    node = convertIdentifierToLiteral(node);
+    ASTNode result = opFunc(node);
+
+    return result;
   }
 
   /*
