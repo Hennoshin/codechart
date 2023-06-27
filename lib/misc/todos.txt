@@ -1,0 +1,8 @@
+List of notes and TODOs I'm not sure where to put
+
+Parser formal grammar syntax goes here ->
+TODO: Put the formal grammar syntax of the parser
+
+TODO: Implement and test array variable support
+    the business logic and support is pretty much there, but not tested yet
+
