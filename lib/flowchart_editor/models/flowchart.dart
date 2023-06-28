@@ -15,7 +15,6 @@ enum ArrowLineType {
 }
 
 class Flowchart {
-  List<BaseElement> elements = [];
   Map<String, BaseElement> elements2 = {};
 
   /*
@@ -31,8 +30,6 @@ class Flowchart {
     start.nextElement = end;
     end.nextElement = end;
 
-    elements.add(start);
-    elements.add(end);
 
     elements2["0"] = start;
     _elementInsertList["1e"] = ArrowLineType.straight;
@@ -45,7 +42,6 @@ class Flowchart {
     _elementInsertList.clear();
     _reindex(start);
 
-    print(_elementInsertList);
   }
 
   // TODO: Add support to accept [index] parameter to reindex for that point instead of from the beginning
@@ -91,6 +87,7 @@ class Flowchart {
     }
   }
 
+  // TODO: Improve performance by preventing full reindex every time
   void addElement2(BaseElement newElement, String targetLocation) {
     List<int> indexes = targetLocation.split(".").map((e) => int.parse(e)).toList();
     int index = indexes.removeLast();
@@ -162,7 +159,31 @@ class Flowchart {
     fullReindex();
   }
 
+  // TODO: Optimize this function, currently only add the elements using its own add function
+  void setElementsMap(Map<String, BaseElement> map) {
+    _elementInsertList.clear();
+    elements2.clear();
 
+    Map<String, BaseElement> mapCopy = map;
+    List<String> keys = mapCopy.keys.toList();
+    keys.sort((str1, str2) => str1.compareTo(str2));
+
+    elements2["0"] = mapCopy[keys.first]!;
+    _elementInsertList["1e"] = ArrowLineType.straight;
+    elements2["1"] = mapCopy[keys.last]!;
+
+    elements2["0"]!.nextElement = elements2["1"];
+    elements2["1"]!.nextElement = elements2["1"];
+
+    keys.removeAt(0);
+    keys.removeLast();
+
+    for (var key in keys) {
+      addElement2(mapCopy[key]!, key);
+    }
+  }
+
+  /*
   // The location is indexed like a tree, starts from 0 to n.
   // For branching element, the elements inside the branch is considered sub-tree.
   // Example, if-else element at index 2, next trueElement is 2.0.1, and then 2.0.2; falseElement is 2.1.1
@@ -225,6 +246,8 @@ class Flowchart {
     _rearrangeElement(prevElement, currentElement.nextElement, prevBranch);
   }
 
+   */
+
   void _rearrangeElement(BaseElement cur, BaseElement nextEl, int? branch) {
     if (branch == null) {
       cur.nextElement = nextEl;
@@ -281,6 +304,6 @@ class Flowchart {
     }
   }
 
-  BaseElement get startElement => elements.first;
+  BaseElement get startElement => elements2["0"]!;
   Map<String, ArrowLineType> get elementInsertList => _elementInsertList;
 }
