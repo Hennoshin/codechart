@@ -1,16 +1,23 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:code_chart/flowchart_editor/models/base_element.dart';
+import 'package:code_chart/flowchart_editor/models/element_factory.dart';
 import 'package:code_chart/flowchart_editor/models/flowchart.dart';
 import 'package:code_chart/flowchart_editor/models/flowchart_program.dart';
+import 'package:code_chart/utility/file_io_service.dart';
 import 'package:crypto/crypto.dart';
+
+import 'package:collection/collection.dart';
 
 import '../flowchart_editor/models/function_flowchart.dart';
 
 mixin FlowchartElementsData {
   static const encoder = utf8;
   late Uint8List elementsData;
+
+  void setElementDataFromBytes(Uint8List data, int offset, [int? sizeInBytes]) {
+    elementsData = data.sublist(offset, sizeInBytes == null ? null : offset + sizeInBytes).buffer.asUint8List();
+  }
 
   void setElementDataFromMap(Map<String, BaseElement> elements) {
     String jsonString = jsonEncode({
@@ -22,15 +29,45 @@ mixin FlowchartElementsData {
 
     elementsData = Uint8List.fromList(encoder.encode(jsonString));
   }
+
+  Map<String, BaseElement> getElementsMapObject() {
+    ElementFactory factory = ElementFactory.instance;
+
+    String jsonString = encoder.decode(elementsData, allowMalformed: false);
+    Map<String, dynamic> json = jsonDecode(jsonString);
+
+    List elements = json["elements"] as List;
+    return {
+      for (var entry in elements)
+        entry["index"]: factory.createElementFromJson(entry["element"] as Map<String, dynamic>)
+    };
+  }
+
+  Map<String, dynamic> getElementsJson() {
+    String jsonString = encoder.decode(elementsData, allowMalformed: false);
+
+    return jsonDecode(jsonString);
+  }
 }
 
 class FunctionFlowchartData with FlowchartElementsData {
-  Uint32List returnType;
-  Uint32List numberOfParams;
-  Uint64List startPointer;
-  Uint8List functionName;
-  Uint8List returnExpression;
-  Uint8List params;
+  late Uint32List returnType;
+  late Uint32List numberOfParams;
+  late Uint64List startPointer;
+  late Uint8List functionName;
+  late Uint8List returnExpression;
+  late Uint8List params;
+
+  FunctionFlowchartData.fromBytes(Uint8List data, int currentOffset, int? sizeInBytes) {
+    returnType = data.buffer.asUint32List(currentOffset, 1);
+    currentOffset += returnType.lengthInBytes;
+
+    numberOfParams = data.buffer.asUint32List(currentOffset, 1);
+    currentOffset += numberOfParams.lengthInBytes;
+
+    startPointer = data.buffer.asUint64List(currentOffset, 1);
+    currentOffset += startPointer.lengthInBytes;
+  }
 
   FunctionFlowchartData(FunctionFlowchart functionFlowchart, int absoluteOffset) :
         returnType = Uint32List.fromList([functionFlowchart.returnType?.index ?? 0xffffffff]),
@@ -66,14 +103,15 @@ class FunctionFlowchartData with FlowchartElementsData {
 
 class FlowchartProgramSaveFile with FlowchartElementsData {
   // Null-terminated "CCV" string
+  static const String fileNamePrefix = ".ccv";
   static final Uint8List prefix = ascii.encode("CCV\u0000");
   static const Hash hashFunction = md5;
   static const int hashDigestSize = 16;
 
-  String programName;
-  Uint32List functionsCount;
-  Uint64List functionsPointers;
-  Uint64List mainElementPointer;
+  final String programName;
+  late Uint32List functionsCount;
+  late Uint64List functionsPointers;
+  late Uint64List mainElementPointer;
   late Digest hashDigest;
   List<FunctionFlowchartData> functionsData = [];
 
@@ -113,29 +151,72 @@ class FlowchartProgramSaveFile with FlowchartElementsData {
         mainElementPointer.buffer.asUint8List() +
         fillerDigest.buffer.asUint8List() +
         elementsData +
-        functionsData.map<Uint8List>((e) => e.combinedData).reduce((value, element) => Uint8List.fromList(value + element))
+        functionsDataBuffer
     );
+
   }
 
-  Future<void> saveToFile(File file) async {
-    IOSink sink = file.openWrite();
+  FlowchartProgramSaveFile.fromFile(this.programName, Uint8List data) {
+    DeepCollectionEquality equality = const DeepCollectionEquality();
 
-    try {
-      sink.add(prefix);
-      sink.add(functionsCount.buffer.asUint8List());
-      sink.add(functionsPointers.buffer.asUint8List());
-      sink.add(mainElementPointer.buffer.asUint8List());
-      sink.add(hashDigest.bytes);
-      sink.add(elementsData);
-      sink.add(functionsData.map<Uint8List>((e) => e.combinedData).reduce((value, element) => Uint8List.fromList(value + element)));
+    int offset = 0;
+    Uint8List prefixByte = data.buffer.asUint8List(0, 4);
+    if (equality.equals(prefix, prefixByte)) throw Exception("Invalid file loaded, signature is missing");
+    offset += prefixByte.length;
 
-      await sink.flush();
+    functionsCount = data.sublist(offset, offset + 4).buffer.asUint32List();
+    offset += functionsCount.lengthInBytes;
+
+    functionsPointers = data.sublist(offset, offset + functionsCount[0] * 8).buffer.asUint64List();
+    offset += functionsPointers.lengthInBytes;
+
+    mainElementPointer = data.sublist(offset, offset + 8).buffer.asUint64List();
+    offset += mainElementPointer.lengthInBytes;
+
+    hashDigest = Digest(data.sublist(offset, offset + hashDigestSize));
+    offset += hashDigestSize;
+
+    int? size = functionsCount[0] > 0 ? functionsPointers[0] : null;
+    setElementDataFromBytes(data, offset, size);
+
+    for (int i = 0; i < functionsCount[0]; i += 1) {
+      offset = functionsPointers[i];
+      size = (i + 1) < functionsCount[0] ? functionsPointers[i + 1] - functionsPointers[i] : null;
+      FunctionFlowchartData flowchartData = FunctionFlowchartData.fromBytes(data, offset, size);
+
+      functionsData.add(flowchartData);
     }
-    catch (e) {
-      throw Exception("Unexpected error while writing save file, $e");
-    }
-    finally {
-      await sink.close();
-    }
+
   }
+
+  Future<void> saveCurrentProgram() async {
+    FileIOService service = FileIOService.instance;
+    bool result = await service.saveToFile(fileName: programName + fileNamePrefix, bytes: buffer);
+
+    if (!result) throw Exception("Failed to save file, unknown error");
+  }
+
+  FlowchartProgram createProgramFromSave() {
+    Flowchart mainFlowchart = Flowchart("Main");
+    mainFlowchart.setElementsMap(getElementsMapObject());
+    FlowchartProgram program = FlowchartProgram.create(programName, mainFlowchart);
+
+    return program;
+  }
+
+  String get fullProgramName => programName + fileNamePrefix;
+
+  Uint8List get buffer => Uint8List.fromList(prefix +
+      functionsCount.buffer.asUint8List() +
+      functionsPointers.buffer.asUint8List() +
+      mainElementPointer.buffer.asUint8List() +
+      hashDigest.bytes +
+      elementsData +
+      functionsDataBuffer
+  );
+
+  Uint8List get functionsDataBuffer => functionsData.isNotEmpty ?
+  functionsData.map<Uint8List>((e) => e.combinedData).
+  reduce((value, element) => Uint8List.fromList(value + element)) :
+  Uint8List(0);
 }
