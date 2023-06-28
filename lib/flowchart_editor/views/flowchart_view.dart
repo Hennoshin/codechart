@@ -4,13 +4,9 @@ import 'package:code_chart/flowchart_editor/models/while_loop_element.dart';
 import 'package:code_chart/flowchart_editor/views/element/element_widget_factory.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:tuple/tuple.dart';
 
 import '../models/branching_element.dart';
-import '../models/merging_element.dart';
-import '../view_models/flowchart_editor_viewmodel.dart';
 import '../view_models/flowchart_viewmodel.dart';
-import 'element/element_widget.dart';
 
 
 class _FlowchartLayoutDelegate extends MultiChildLayoutDelegate {
@@ -19,13 +15,16 @@ class _FlowchartLayoutDelegate extends MultiChildLayoutDelegate {
   final Map<String, BaseElement> elements;
   final Map<String, ArrowLineType> arrowLines;
 
+  final double centerHorizontal;
+
   final double elementWidth;
   final double elementHeight;
   final double minArrowHeight;
 
   _FlowchartLayoutDelegate({
     required this.columnsHeight, required this.relativeOffsets, required this.elements, required this.arrowLines,
-    required this.elementHeight, required this.elementWidth, minArrowHeight
+    required this.elementHeight, required this.elementWidth, minArrowHeight,
+    required this.centerHorizontal
   }) : minArrowHeight = minArrowHeight ?? elementHeight;
 
   Map<String, Offset> getAbsoluteOffsets(Offset absoluteOffset) {
@@ -50,7 +49,7 @@ class _FlowchartLayoutDelegate extends MultiChildLayoutDelegate {
   @override
   void performLayout(Size size) {
     Offset heightOffset = Offset.zero;
-    Offset widthOffsetAnchor = const Offset(500, 0);
+    Offset widthOffsetAnchor = Offset(centerHorizontal, 0);
     layoutChild("0", BoxConstraints.expand(width: elementWidth, height: elementHeight));
     positionChild("0", heightOffset + widthOffsetAnchor);
     heightOffset += Offset(0, elementHeight);
@@ -145,9 +144,7 @@ class _FlowchartLayoutDelegate extends MultiChildLayoutDelegate {
       currentIndex = "$prefix${index}e";
       currentElementIndex = prefix + (index - 1).toString();
 
-      print(arrowList);
       Size size = performElementLayout(currentElementIndex, branchAbsoluteOffset);
-      print(currentElementIndex);
 
       if (elements[currentElementIndex]! is WhileLoopElement) {
         Map<String, ArrowLineType> leftList = {
@@ -193,8 +190,6 @@ class _FlowchartLayoutDelegate extends MultiChildLayoutDelegate {
       branchAbsoluteOffset += Offset(0, size.height);
       heightCounter += size.height;
 
-      print(index);
-
       if (arrowList[currentIndex] == ArrowLineType.straight) {
         size = layoutChild(currentIndex, BoxConstraints.expand(width: elementWidth, height: minArrowHeight));
       }
@@ -217,9 +212,6 @@ class _FlowchartLayoutDelegate extends MultiChildLayoutDelegate {
 
   Size performElementLayout(String currentIndex, Offset offset) {
     Size size;
-
-    print(currentIndex);
-    print(elements[currentIndex] ?? "Null");
 
     if (elements[currentIndex]! is! BranchingElement) {
       size = layoutChild(currentIndex, BoxConstraints.expand(width: elementWidth, height: elementHeight));
@@ -244,78 +236,9 @@ class FlowchartView extends StatelessWidget {
   static const double elementWidth = 100.0;
   static const double arrowHeight = 50.0;
 
-  final TransformationController transformationController = TransformationController();
+  final GlobalKey _flowchartWidgetKey = GlobalKey();
 
   FlowchartView({Key? key}) : super(key: key);
-
-  // TODO: Change it so that it does not rely on recursive, each element is mapped now, figure something out?
-  Widget _createFlowchartColumn(BaseElement startElement, [String current = "", bool isBranch = false, MergingElement? endPoint]) {
-    BaseElement element = startElement;
-    List<Widget> widgets = [];
-
-    int i = 0;
-    if (isBranch) {
-      i += 1;
-
-      if (current.substring(current.length - 2, current.length - 1) == "0") {
-        widgets.add(
-          Expanded(
-            child: AddWidgetArrowArea(type: ArrowLineType.branchEmptyLeft, positionIndex: current + i.toString()),
-          )
-        );
-      }
-      else {
-        widgets.add(
-          Expanded(
-            child: AddWidgetArrowArea(type: ArrowLineType.branchEmptyRight, positionIndex: current + i.toString()),
-          )
-        );
-      }
-    }
-
-    while (element.nextElement != element && element != endPoint) {
-      if (element is BranchingElement) {
-        widgets.add(IntrinsicHeight(
-          child: Transform.translate(
-            offset: const Offset(-50, 0),
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _createFlowchartColumn(element.trueBranchNextElement, "$current$i.0.", true, element.mergePoint),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: <Widget>[ElementWidget(positionIndex: current + i.toString()), Container(width: 100, height: 50, color: Colors.lightGreen,)],
-                  ),
-                  _createFlowchartColumn(element.falseBranchNextElement, "$current$i.1.", true, element.mergePoint)
-                ]
-            ),
-          ),
-        ));
-
-      }
-      else {
-        widgets.add(ElementWidget(positionIndex: current + i.toString()));
-      }
-
-      i += 1;
-      widgets.add(AddWidgetArrowArea(type: ArrowLineType.straight, positionIndex: current + i.toString()));
-
-      element = element.nextElement;
-    }
-
-    if (!isBranch) {
-      widgets.add(ElementWidget(positionIndex: current + i.toString()));
-    }
-
-    return IntrinsicWidth(
-      child: Column(
-        children: widgets,
-      )
-    );
-
-  }
-
 
   Widget _createFlowchartView(Flowchart flowchart) {
     Map<String, double> heights = {};
@@ -341,11 +264,50 @@ class FlowchartView extends StatelessWidget {
         )
     ).toList();
 
-    return CustomMultiChildLayout(
-      delegate: _FlowchartLayoutDelegate(columnsHeight: heights, relativeOffsets: relativeOffsets,
-        elements: flowchart.elements2, arrowLines: flowchart.elementInsertList, elementHeight: elementHeight, elementWidth: elementWidth
+    Map<String, double> absoluteOffset = {};
+    List<String> keys = relativeOffsets.keys.toList(growable: false);
+    keys.sort((str1, str2) => str1.compareTo(str2));
+    for (var key in keys) {
+      List<int> indexes = key.split(".").map<int>((el) => int.parse(el)).toList();
+
+      if (indexes.length == 2) {
+        absoluteOffset[key] = relativeOffsets[key]!;
+
+        continue;
+      }
+
+      String parent = indexes.sublist(0, indexes.length - 2).join(".");
+
+      absoluteOffset[key] = relativeOffsets[key]! + absoluteOffset[parent]!;
+    }
+
+    List<double> offsets = absoluteOffset.values.toList(growable: false);
+    offsets.sort();
+
+    double height = int.parse(sortedIndex.last) * (elementHeight + arrowHeight) + elementHeight;
+    for (var entry in heights.entries) {
+      if (entry.key.split(".").length == 1) {
+        height += entry.value - elementHeight;
+      }
+    }
+
+    return CustomPanWidget(
+      child: Container(
+        constraints: BoxConstraints.tight(
+          Size(
+            offsets.isNotEmpty ? offsets.last - offsets.first + elementWidth : elementWidth,
+            height
+          )
+        ),
+        child: CustomMultiChildLayout(
+            key: _flowchartWidgetKey,
+            delegate: _FlowchartLayoutDelegate(columnsHeight: heights, relativeOffsets: relativeOffsets,
+              elements: flowchart.elements2, arrowLines: flowchart.elementInsertList, elementHeight: elementHeight, elementWidth: elementWidth,
+              centerHorizontal: offsets.isNotEmpty ? offsets.first.abs() : 0,
+            ),
+            children: widgets
+        ),
       ),
-      children: widgets
     );
   }
 
@@ -439,16 +401,68 @@ class FlowchartView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Flowchart flowchart = context.watch<FlowchartViewModel>().flowchart;
-    BaseElement startElement = flowchart.startElement;
 
-    return Container(
-      child: _createFlowchartView(flowchart),
+    Widget widget = _createFlowchartView(flowchart);
+
+    return OverflowBox(
+      maxWidth: double.infinity,
+      maxHeight: double.infinity,
+      child: widget,
     );
 
   }
 
 }
 
+class CustomPanWidget extends StatefulWidget {
+  final Widget? child;
+
+  const CustomPanWidget({super.key, this.child});
+
+  @override
+  State createState() => _CustomPanWidgetState();
+}
+
+class _CustomPanWidgetState extends State<CustomPanWidget> {
+  late Offset _position;
+  late Offset _delta;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _position = Offset.zero;
+    _delta = Offset.zero;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.translate(
+      offset: _position + _delta,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanStart: (details) {
+          setState(() {
+            _delta = Offset.zero;
+          });
+        },
+        onPanUpdate: (details) {
+          setState(() {
+            _delta += details.delta;
+          });
+        },
+        onPanEnd: (details) {
+          setState(() {
+            _position += _delta;
+            _delta = Offset.zero;
+          });
+        },
+        child: widget.child,
+      ),
+    );
+  }
+
+}
 
 class AddWidgetArrowArea extends StatelessWidget {
   final Size size;
@@ -478,21 +492,6 @@ class AddWidgetArrowArea extends StatelessWidget {
         },
       ),
     );
-
-    /*
-    return DragTarget<BaseElement>(
-      builder: (context, items, rejectedItems) => Container(
-        constraints: constraints,
-        child: CustomPaint(
-          painter: ArrowLineCustomPainter(type: type),
-        ),
-      ),
-      onAccept: (item) {
-        BaseElement newElement = item.copyWith();
-        context.read<FlowchartViewModel>().addNewElement(newElement, positionIndex);
-      },
-    );
-     */
   }
 
 }
