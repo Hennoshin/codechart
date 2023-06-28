@@ -264,7 +264,7 @@ class ExecutionEnvironment {
       throw Exception("Unexpected identifier. The identifier is not referring to a variable");
     }
 
-    return ASTNode(ASTNodeType.literal, op.value!, op.runtimeType);
+    return ASTNode(ASTNodeType.literal, op.value!, op.value.runtimeType);
   }
 
   // TODO: Check whether the return value matched the function return type
@@ -281,7 +281,13 @@ class ExecutionEnvironment {
 
     int index = loadExecutionState();
     var stack = _currentAST[index];
-    stack.ast[stack.currentPointer] = returnVal ?? ASTNode.empty();
+    if (returnVal == null) {
+      stack.removeFromCurrentPosition();
+
+      return;
+    }
+
+    stack.ast[stack.currentPointer] = returnVal;
   }
 
   BaseElement _flowchartFunctionCall(_StackAST ast, int addOffset) {
@@ -360,6 +366,7 @@ class ExecutionEnvironment {
 
     leftNode = convertIdentifierToLiteral(leftNode);
     rightNode = convertIdentifierToLiteral(rightNode);
+
     ASTNode result = opFunc(leftNode, rightNode);
 
     return result;
@@ -367,14 +374,14 @@ class ExecutionEnvironment {
 
   ASTNode addOperator(ASTNode leftOp, ASTNode rightOp) {
     Object result;
-    if (leftOp.valueType == String && rightOp.valueType == String) {
+    if (leftOp.value is String && rightOp.value is String) {
       result = (leftOp.value as String) + (rightOp.value as String);
     }
     else if (leftOp.value is num && rightOp.value is num) {
       result = (leftOp.value as num) + (rightOp.value as num);
     }
     else {
-      throw Exception("Unexpected operands type.");
+      throw Exception("Unexpected operands type. ${leftOp.valueType} and ${rightOp.valueType}");
     }
 
     return ASTNode(ASTNodeType.literal, result, result.runtimeType);
