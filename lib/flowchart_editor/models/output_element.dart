@@ -10,6 +10,8 @@ import 'package:code_chart/utility/data_classes.dart';
 class OutputElement extends BaseElement {
   OutputElement(super.expr);
 
+  OutputElement.fromJson(Map<String, dynamic> json) : this(json["expression"]);
+
   @override
   BaseElement evaluate(Memory stack, List<ASTNode> exprs) {
     return nextElement;

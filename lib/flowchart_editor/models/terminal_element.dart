@@ -11,6 +11,8 @@ class TerminalElement extends BaseElement {
   TerminalElement.start(this.placeholder) : _isEndTerminal = false, super.empty();
   TerminalElement.end(this.placeholder, [String? exp]) : _isEndTerminal = true, super(exp);
 
+  TerminalElement.fromJson(Map<String, dynamic> json) : placeholder = json["placeholder"], _isEndTerminal = json["isEndTerminal"], super(json["expression"]);
+
   @override
   BaseElement evaluate(Memory stack, List<ASTNode> exprs) {
     return nextElement;

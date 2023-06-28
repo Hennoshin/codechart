@@ -11,6 +11,10 @@ class AssignmentElement extends BaseElement {
 
   AssignmentElement(String? baseExpr, this._assignmentExpr) : super(baseExpr);
 
+  AssignmentElement.fromJson(Map<String, dynamic> json) :
+        _assignmentExpr = json["leftOp"],
+        super(json["rightOp"]);
+
   /*
    * Evaluate variable assignment
    * leftOp = rightOp
@@ -67,8 +71,8 @@ class AssignmentElement extends BaseElement {
 
   @override
   String toString() {
-    String str = (_assignmentExpr ?? "") + (baseExpr ?? "");
-    return str != "" ? str : "Assignment";
+    String str = "${_assignmentExpr ?? ""} = ${baseExpr ?? ""}";
+    return str != " = " ? str : "Assignment";
   }
 
   @override

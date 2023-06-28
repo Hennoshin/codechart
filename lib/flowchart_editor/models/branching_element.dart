@@ -16,6 +16,8 @@ class BranchingElement extends BaseElement {
    setDefault();
   }
 
+  BranchingElement.fromJson(Map<String, dynamic> json) : this(json["expression"]);
+
   @override
   void setDefault() {
     falseBranchNextElement = mergePoint;
@@ -83,6 +85,11 @@ class BranchingElement extends BaseElement {
     newElement.nextElement = nextElement;
 
     return newElement;
+  }
+
+  @override
+  String toString() {
+    return baseExpr ?? "If";
   }
 
   @override

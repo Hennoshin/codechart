@@ -5,6 +5,8 @@ import 'branching_element.dart';
 class WhileLoopElement extends BranchingElement {
   WhileLoopElement(super.expr);
 
+  WhileLoopElement.fromJson(Map<String, dynamic> json) : this(json["expression"]);
+
   @override
   void setDefault() {
     trueBranchNextElement = this;
@@ -31,7 +33,7 @@ class WhileLoopElement extends BranchingElement {
 
   @override
   String toString() {
-    return "Test while loop";
+    return baseExpr ?? "While Loop";
   }
 
   @override

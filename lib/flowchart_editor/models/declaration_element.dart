@@ -11,6 +11,12 @@ class DeclarationElement extends BaseElement {
   int? arraySize;
   DeclarationElement(super.baseExpr, this._isArray, this._type);
 
+  DeclarationElement.fromJson(Map<String, dynamic> json) :
+        _type = DataType.values[json["dataType"]],
+        _isArray = json["isArray"],
+        arraySize = json["arraySize"],
+        super(json["expression"]);
+
   @override
   BaseElement evaluate(Memory stack, List<ASTNode> exprs) {
     String expr = baseExpr!;
@@ -86,7 +92,7 @@ class DeclarationElement extends BaseElement {
 
   @override
   String toString() {
-    return baseExpr ?? "Declaration";
+    return baseExpr != null ? "${_type.name} $baseExpr" : "Declaration";
   }
 
   @override

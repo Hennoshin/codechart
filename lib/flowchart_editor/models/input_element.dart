@@ -11,6 +11,8 @@ class InputElement extends BaseElement {
 
   InputElement(super.expr);
 
+  InputElement.fromJson(Map<String, dynamic> json) : prompt = json["prompt"] ?? "", super(json["expression"]);
+
   @override
   List<String?> get exprList => ["input($baseExpr${prompt.isNotEmpty ? ", $prompt" : ""})"];
 
