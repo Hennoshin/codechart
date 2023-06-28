@@ -1,10 +1,12 @@
 import 'package:code_chart/flowchart_editor/models/branching_element.dart';
+import 'package:code_chart/flowchart_editor/models/function_call_element.dart';
 import 'package:code_chart/flowchart_editor/models/terminal_element.dart';
 import 'package:code_chart/flowchart_editor/models/while_loop_element.dart';
 import 'package:code_chart/flowchart_editor/views/element/assignment_element_widget.dart';
 import 'package:code_chart/flowchart_editor/views/element/branching_element_widget.dart';
 import 'package:code_chart/flowchart_editor/views/element/declaration_element_widget.dart';
 import 'package:code_chart/flowchart_editor/views/element/element_widget.dart';
+import 'package:code_chart/flowchart_editor/views/element/function_call_element_widget.dart';
 import 'package:code_chart/flowchart_editor/views/element/input_element_widget.dart';
 import 'package:code_chart/flowchart_editor/views/element/merge_element_widget.dart';
 import 'package:code_chart/flowchart_editor/views/element/output_element_widget.dart';
@@ -38,6 +40,9 @@ class ElementWidgetFactory {
     }
     if (element is InputElement) {
       return InputElementWidget(positionIndex: positionIndex);
+    }
+    if (element is FunctionCallElement) {
+      return FunctionCallElementWidget(positionIndex: positionIndex);
     }
     if (element is WhileLoopElement) {
       return Column(
