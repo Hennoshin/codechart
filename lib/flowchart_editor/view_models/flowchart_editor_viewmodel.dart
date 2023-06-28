@@ -1,19 +1,18 @@
-import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
-import 'package:code_chart/flowchart_editor/models/assignment_element.dart';
+import 'dart:typed_data';
+
 import 'package:code_chart/flowchart_editor/models/base_element.dart';
-import 'package:code_chart/flowchart_editor/models/branching_element.dart';
-import 'package:code_chart/flowchart_editor/models/declaration_element.dart';
 import 'package:code_chart/flowchart_editor/models/flowchart_program.dart';
-import 'package:code_chart/flowchart_editor/models/input_element.dart';
-import 'package:code_chart/flowchart_editor/view_models/flowchart_viewmodel.dart';
+import 'package:code_chart/utility/file_io_service.dart';
+import 'package:code_chart/utility/flowchart_program_save_file.dart';
 import 'package:flutter/material.dart';
+import 'package:tuple/tuple.dart';
 
 import '../models/flowchart.dart';
-import '../models/output_element.dart';
 
 class FlowchartEditorViewModel extends ChangeNotifier {
   FlowchartProgram mainProgram;
-  Flowchart currentFlowchart;
+  Flowchart _currentFlowchart;
+  String _currentFlowchartID;
   String programName;
   bool toggle = true;
   int elementSelectIndex = 0;
@@ -29,67 +28,25 @@ class FlowchartEditorViewModel extends ChangeNotifier {
   }
 
   FlowchartEditorViewModel(this.mainProgram) :
-        currentFlowchart = mainProgram.mainFlowchart,
+        _currentFlowchart = mainProgram.mainFlowchart,
+        _currentFlowchartID = "main",
         programName = mainProgram.programName;
 
-  void toggleName() {
-    if (toggle) {
-      programName = "Hidden Name";
-    }
-    else {
-      programName = mainProgram.programName;
-    }
-
-    toggle = !toggle;
-
-    notifyListeners();
-  }
 
   void setAddElementSelect(String index) {
     addElementIndex = index;
   }
 
-  /// TODO: Move this logic to a [BaseElement] factory and to [FlowchartViewModel]
-  void addElement(int elementType) {
-    BaseElement newElement;
-    switch (elementType) {
-      case 0:
-        newElement = DeclarationElement(null, false, DataType.integer);
-        break;
-
-      case 1:
-        newElement = AssignmentElement(null, null);
-        break;
-
-      case 2:
-        newElement = OutputElement(null);
-        break;
-
-      case 3:
-        newElement = InputElement(null);
-        break;
-
-      case 4:
-        newElement = BranchingElement("trueFalse");
-        break;
-
-      default:
-        throw Exception("Unknown type");
-    }
-
-    currentFlowchart.addElement2(newElement, addElementIndex);
-
-    notifyListeners();
-  }
-
-  void removeElement(String index) {
-    currentFlowchart.removeElement(index);
-
-    notifyListeners();
-  }
 
   void stepRunFlowchart() {
-    mainProgram.stepRunFlowchart();
+    try {
+      mainProgram.stepRunFlowchart();
+    }
+    catch (e) {
+      stopFlowchart();
+
+      rethrow;
+    }
 
     notifyListeners();
   }
@@ -110,5 +67,52 @@ class FlowchartEditorViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setProgramName(String name) {
+    mainProgram.programName = name;
+    programName = name;
+
+    notifyListeners();
+  }
+
+  void setCurrentFlowchart(String identifier) {
+    if (identifier == "main") {
+      _currentFlowchart = mainProgram.mainFlowchart;
+      _currentFlowchartID = "main";
+    }
+    else {
+      var fn = mainProgram.functionTable[identifier];
+      _currentFlowchart = fn ?? _currentFlowchart;
+      _currentFlowchartID = fn == null ? _currentFlowchartID : identifier;
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> loadProgram() async {
+    FileIOService service = FileIOService.instance;
+
+    Tuple2<String, Uint8List>? result = await service.loadFile();
+    if (result == null) throw Exception("Unable to load file");
+
+    var saveFile = FlowchartProgramSaveFile.fromFile(result.item1, result.item2);
+    FlowchartProgram newProgram = saveFile.createProgramFromSave();
+
+    mainProgram = newProgram;
+    programName = mainProgram.programName;
+    _currentFlowchartID = "main";
+    _currentFlowchart = newProgram.mainFlowchart;
+
+    notifyListeners();
+  }
+
+  Future<void> saveProgram() async {
+    FlowchartProgramSaveFile saveFile = FlowchartProgramSaveFile(mainProgram);
+    FileIOService service = FileIOService.instance;
+
+    await service.saveToFile(fileName: saveFile.fullProgramName, bytes: saveFile.buffer);
+  }
+
+  String get currentFlowchartID => _currentFlowchartID;
+  Flowchart get currentFlowchart => _currentFlowchart;
   bool get isFlowchartRunning => mainProgram.isRunning;
 }

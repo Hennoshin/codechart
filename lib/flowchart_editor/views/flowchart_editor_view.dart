@@ -1,7 +1,9 @@
+import 'package:code_chart/commons/error_dialog.dart';
 import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
 import 'package:code_chart/flowchart_editor/models/assignment_element.dart';
 import 'package:code_chart/flowchart_editor/models/branching_element.dart';
 import 'package:code_chart/flowchart_editor/models/declaration_element.dart';
+import 'package:code_chart/flowchart_editor/models/function_call_element.dart';
 import 'package:code_chart/flowchart_editor/models/input_element.dart';
 import 'package:code_chart/flowchart_editor/models/output_element.dart';
 import 'package:code_chart/flowchart_editor/models/while_loop_element.dart';
@@ -28,6 +30,8 @@ class FlowchartEditorView extends StatefulWidget {
 }
 
 class _FlowchartEditorViewState extends State<FlowchartEditorView> {
+  final ScrollController _controller = ScrollController();
+
   BaseElement _createElement(BaseElement element) {
     element.nextElement = element;
     
@@ -64,6 +68,52 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
           title: Text(programName),
           actions: <Widget>[
             IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () async {
+                String? newName = await showDialog(context: context, builder: (_) => _EditProgramNameDialog(currentName: programName));
+
+                if (newName == null) {
+                  return;
+                }
+
+                viewModel.setProgramName(newName);
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.download_sharp),
+              onPressed: () async {
+                try {
+                  await viewModel.loadProgram();
+                }
+                catch (e) {
+                  showDialog(context: context, builder: (_) => ErrorDialog(title: "Failed to load file", content: e.toString()));
+                }
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: () async {
+                await viewModel.saveProgram();
+              },
+            ),
+            DropdownButton<String>(
+              value: viewModel.currentFlowchartID,
+              items: <DropdownMenuItem<String>>[
+                const DropdownMenuItem(
+                  value: "main",
+                  child: Text("Main"),
+                ),
+                for (var str in viewModel.mainProgram.functionTable.keys)
+                  DropdownMenuItem(
+                    value: str,
+                    child: Text(str),
+                  ),
+              ],
+              onChanged: (value) {
+                viewModel.setCurrentFlowchart(value!);
+              },
+            ),
+            IconButton(
               icon: const Icon(Icons.functions),
               onPressed: () {
                 Navigator.pushNamed(context, RouteNames.functionManager, arguments: viewModel.mainProgram);
@@ -82,6 +132,7 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
           child: Container(
               padding: const EdgeInsets.all(10.0),
               child: TabBarView(
+                physics: const NeverScrollableScrollPhysics(),
                 children: <Widget>[
                   ChangeNotifierProxyProvider<FlowchartEditorViewModel, FlowchartViewModel>(
                     create: (_) => FlowchartViewModel(viewModel.currentFlowchart),
@@ -110,12 +161,24 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
             child: Row(
               children: <Widget>[
                 const _FlowchartExecutionControl(),
-                _buildAddElementWidget(element: _createElement(DeclarationElement(null, false, DataType.integer)), name: "Declaration Element"),
-                _buildAddElementWidget(element: _createElement(AssignmentElement(null, null)), name: "Assignment Element"),
-                _buildAddElementWidget(element: _createElement(InputElement(null)), name: "Input Element"),
-                _buildAddElementWidget(element: _createElement(OutputElement(null)), name: "Output Element"),
-                _buildAddElementWidget(element: _createElement(BranchingElement(null)), name: "Branching Element"),
-                _buildAddElementWidget(element: _createElement(WhileLoopElement(null)), name: "While-Loop Element"),
+                Expanded(
+                  child: Container(
+                    height: 40,
+                    child: ListView(
+                      controller: _controller,
+                      scrollDirection: Axis.horizontal,
+                      children: <Widget>[
+                        _buildAddElementWidget(element: _createElement(DeclarationElement(null, false, DataType.integer)), name: "Declaration Element"),
+                        _buildAddElementWidget(element: _createElement(AssignmentElement(null, null)), name: "Assignment Element"),
+                        _buildAddElementWidget(element: _createElement(InputElement(null)), name: "Input Element"),
+                        _buildAddElementWidget(element: _createElement(OutputElement(null)), name: "Output Element"),
+                        _buildAddElementWidget(element: _createElement(FunctionCallElement(null)), name: "Function Call Element"),
+                        _buildAddElementWidget(element: _createElement(BranchingElement(null)), name: "Branching Element"),
+                        _buildAddElementWidget(element: _createElement(WhileLoopElement(null)), name: "While-Loop Element"),
+                      ],
+                    ),
+                  )
+                ),
                 const _ToolsRow()
               ],
             ),
@@ -171,7 +234,12 @@ class _FlowchartExecutionControl extends StatelessWidget {
             icon: const Icon(Icons.play_arrow),
             color: Colors.green,
             onPressed: () {
-              context.read<FlowchartEditorViewModel>().stepRunFlowchart();
+              try {
+                context.read<FlowchartEditorViewModel>().stepRunFlowchart();
+              }
+              catch (e) {
+                showDialog(context: context, builder: (_) => ErrorDialog(title: "Execution Error", content: e.toString()));
+              }
             },
           ),
           IconButton(
@@ -187,79 +255,61 @@ class _FlowchartExecutionControl extends StatelessWidget {
   }
 }
 
-/*
+class _EditProgramNameDialog extends StatefulWidget {
+  final String currentName;
 
-class _FlowchartModelView extends StatelessWidget {
-  _FlowchartModelView({Key? key}) : super(key: key);
+  const _EditProgramNameDialog({super.key, required this.currentName});
 
-  Widget _createFlowchart(BaseElement startElement, [String current = "", bool isBranch = false, MergingElement? endPoint]) {
-    print("Test build");
-    BaseElement element = startElement;
-    List<Widget> widgets = [];
+  @override
+  State<StatefulWidget> createState() => _EditProgramNameDialogState();
 
-    int i = 0;
-    if (isBranch) {
-      i += 1;
+}
 
-      widgets.add(_AddButton(index: current + i.toString()));
-    }
+class _EditProgramNameDialogState extends State<_EditProgramNameDialog> {
+  final TextEditingController _controller = TextEditingController();
+  String? _errorMessage;
 
-    while (element.nextElement != element && element != endPoint) {
-      if (element is BranchingElement) {
-        widgets.add(Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _createFlowchart(element.trueBranchNextElement, "$current$i.0.", true, element.mergePoint),
-            ElementWidget(element: element, index: current + i.toString()),
-            _createFlowchart(element.falseBranchNextElement, "$current$i.1.", true, element.mergePoint)
-          ]
-        ));
-      }
-      else {
-        print(i);
-        var c = ElementViewModel(element, current + i.toString());
-        widgets.add(ElementWidget(element: element, index: current + i.toString()));
-      }
+  @override
+  void initState() {
+    super.initState();
 
-      i += 1;
-      widgets.add(_AddButton(index: current + i.toString()));
-
-      element = element.nextElement;
-    }
-
-    if (!isBranch) {
-      widgets.add(ElementWidget(element: element, index: current + i.toString()));
-    }
-
-    return Column(
-      children: widgets,
-    );
+    _controller.text = widget.currentName;
   }
 
   @override
   Widget build(BuildContext context) {
-    Flowchart flowchart = context.watch<FlowchartEditorViewModel>().currentFlowchart;
+    return AlertDialog(
+      title: const Text("Edit Program Name"),
+      content: TextFormField(
+        controller: _controller,
+        decoration: InputDecoration(
+          label: const Text("Name"),
+          errorText: _errorMessage
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        TextButton(
+          child: const Text("Save"),
+          onPressed: () {
+            if (_controller.text == "") {
+              setState(() {
+                _errorMessage = "Name cannot be empty";
+              });
 
-    return _createFlowchart(flowchart.startElement);
-  }
-}
+              return;
+            }
 
-class _AddButton extends StatelessWidget {
-  final String index;
-
-  const _AddButton({Key? key, required this.index}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-        onPressed: () {
-          context.read<FlowchartEditorViewModel>().setAddElementSelect(index);
-        },
-        child: Text(index)
+            Navigator.pop(context, _controller.text);
+          },
+        )
+      ],
     );
   }
 
 }
-
- */
