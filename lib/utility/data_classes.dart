@@ -53,6 +53,7 @@ class Token {
   Token(this.type, this.val);
 }
 
+// TODO: [valueType] is redundant, consider removing
 class ASTNode {
   late ASTNodeType type;
   late Object value;
