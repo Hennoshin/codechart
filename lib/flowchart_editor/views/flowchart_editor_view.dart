@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:code_chart/commons/error_dialog.dart';
 import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
 import 'package:code_chart/flowchart_editor/models/assignment_element.dart';
@@ -13,6 +15,7 @@ import 'package:code_chart/flowchart_editor/view_models/flowchart_viewmodel.dart
 import 'package:code_chart/flowchart_editor/view_models/memory_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/views/flowchart_view.dart';
 import 'package:code_chart/flowchart_editor/views/memory_view.dart';
+import 'package:code_chart/utility/file_io_service.dart';
 import "package:flutter/material.dart";
 import 'package:provider/provider.dart';
 
@@ -31,6 +34,25 @@ class FlowchartEditorView extends StatefulWidget {
 
 class _FlowchartEditorViewState extends State<FlowchartEditorView> {
   final ScrollController _controller = ScrollController();
+  final GlobalKey _flowchartViewKey = GlobalKey();
+
+  Future<void> generateFlowchartImage(BuildContext context) async {
+    FlowchartEditorViewModel vm = context.read<FlowchartEditorViewModel>();
+    try {
+      var imageData = await (_flowchartViewKey.currentWidget! as FlowchartView).captureFlowchart();
+      if (imageData == null) {
+        throw Exception("Unable to create image. Unknown error");
+      }
+
+      print(base64.encode(imageData));
+
+      FileIOService service = FileIOService.instance;
+      await service.saveToFile(fileName: "${vm.programName} ${vm.currentFlowchartID}.png", bytes: imageData, mime: "image/png");
+    }
+    catch (e) {
+      showDialog(context: context, builder: (_) => ErrorDialog(title: "Failed to generate flowchart image", content: e.toString()));
+    }
+  }
 
   BaseElement _createElement(BaseElement element) {
     element.nextElement = element;
@@ -96,6 +118,12 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
                 await viewModel.saveProgram();
               },
             ),
+            IconButton(
+              icon: const Icon(Icons.download_sharp),
+              onPressed: () {
+                generateFlowchartImage(context);
+              },
+            ),
             DropdownButton<String>(
               value: viewModel.currentFlowchartID,
               items: <DropdownMenuItem<String>>[
@@ -138,7 +166,7 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
                     create: (_) => FlowchartViewModel(viewModel.currentFlowchart),
                     update: (_, flowchartEditorViewModel, fvm) => fvm!..update(flowchartEditorViewModel),
                     child: Center(
-                      child: FlowchartView(),
+                      child: FlowchartView(key: _flowchartViewKey),
                     ),
                   ),
                   ChangeNotifierProxyProvider<FlowchartEditorViewModel, MemoryViewModel>(

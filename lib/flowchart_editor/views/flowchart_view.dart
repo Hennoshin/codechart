@@ -1,9 +1,13 @@
+import 'dart:typed_data';
+
 import 'package:code_chart/flowchart_editor/models/base_element.dart';
 import 'package:code_chart/flowchart_editor/models/flowchart.dart';
 import 'package:code_chart/flowchart_editor/models/while_loop_element.dart';
 import 'package:code_chart/flowchart_editor/views/element/element_widget_factory.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
+import 'dart:ui' as ui;
 
 import '../models/branching_element.dart';
 import '../view_models/flowchart_viewmodel.dart';
@@ -27,6 +31,7 @@ class _FlowchartLayoutDelegate extends MultiChildLayoutDelegate {
     required this.centerHorizontal
   }) : minArrowHeight = minArrowHeight ?? elementHeight;
 
+  // TODO: Move this absolute offsets calculation to the main View class
   Map<String, Offset> getAbsoluteOffsets(Offset absoluteOffset) {
     Map<String, Offset> offsets = {"0": absoluteOffset};
 
@@ -240,6 +245,23 @@ class FlowchartView extends StatelessWidget {
 
   FlowchartView({Key? key}) : super(key: key);
 
+  // Return a bit mapping picture of the flowchart in chosen ratio and format (default to PNG)
+  Future<Uint8List?> captureFlowchart({double ratio = 1.0, ui.ImageByteFormat format = ui.ImageByteFormat.png}) async {
+    try {
+      RenderRepaintBoundary boundary = _flowchartWidgetKey.currentContext!
+          .findRenderObject()! as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: ratio);
+
+      return (await image.toByteData(format: format))?.buffer.asUint8List();
+    }
+    on TypeError catch (e) {
+      throw Exception("Unable to create image due to flowchart widget not loaded");
+    }
+    catch (e) {
+      rethrow;
+    }
+  }
+
   Widget _createFlowchartView(Flowchart flowchart) {
     Map<String, double> heights = {};
     Map<String, double> relativeOffsets = {};
@@ -292,22 +314,24 @@ class FlowchartView extends StatelessWidget {
     }
 
     return CustomPanWidget(
-      child: Container(
-        constraints: BoxConstraints.tight(
-          Size(
-            offsets.isNotEmpty ? offsets.last - offsets.first + elementWidth : elementWidth,
-            height
-          )
+      child: RepaintBoundary(
+        key: _flowchartWidgetKey,
+        child: Container(
+          constraints: BoxConstraints.tight(
+              Size(
+                  offsets.isNotEmpty ? offsets.last - offsets.first + elementWidth : elementWidth,
+                  height
+              )
+          ),
+          child: CustomMultiChildLayout(
+              delegate: _FlowchartLayoutDelegate(columnsHeight: heights, relativeOffsets: relativeOffsets,
+                elements: flowchart.elements2, arrowLines: flowchart.elementInsertList, elementHeight: elementHeight, elementWidth: elementWidth,
+                centerHorizontal: offsets.isNotEmpty ? offsets.first.abs() : 0,
+              ),
+              children: widgets
+          ),
         ),
-        child: CustomMultiChildLayout(
-            key: _flowchartWidgetKey,
-            delegate: _FlowchartLayoutDelegate(columnsHeight: heights, relativeOffsets: relativeOffsets,
-              elements: flowchart.elements2, arrowLines: flowchart.elementInsertList, elementHeight: elementHeight, elementWidth: elementWidth,
-              centerHorizontal: offsets.isNotEmpty ? offsets.first.abs() : 0,
-            ),
-            children: widgets
-        ),
-      ),
+      )
     );
   }
 
