@@ -20,6 +20,21 @@ class FunctionEditViewModel extends ChangeNotifier with ErrorReportingViewModel 
     clearErrorAndNotify();
   }
 
+  void editFunctionParam(int index, String varName, DataType type, bool isArray) {
+    var param = functionParameters[index];
+    param.name = varName;
+    param.type = type;
+    param.isArray = isArray;
+
+    clearErrorAndNotify();
+  }
+
+  void deleteFunctionParam(int index) {
+    functionParameters.removeAt(index);
+
+    clearErrorAndNotify();
+  }
+
   void swapFunctionParam(int srcIndex, int dstIndex) {
     var temp = functionParameters[dstIndex];
     functionParameters[dstIndex] = functionParameters[srcIndex];

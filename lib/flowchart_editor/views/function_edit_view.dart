@@ -18,6 +18,8 @@ class _FunctionEditViewState extends State<FunctionEditView> {
   final GlobalKey<FormFieldState<String>> _functionNameKey = GlobalKey();
   final GlobalKey<FormFieldState> _returnExpressionKey = GlobalKey();
 
+  int? selectedParam;
+
   @override
   Widget build(BuildContext context) {
     FunctionEditViewModel viewModel = context.watch<FunctionEditViewModel>();
@@ -105,7 +107,9 @@ class _FunctionEditViewState extends State<FunctionEditView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    const Text("List of Parameters"),
+                    const ListTile(
+                      title: Text("List of Parameters"),
+                    ),
                     Expanded(
                       child: ListView.builder(
                         itemCount: viewModel.functionParameters.length,
@@ -116,7 +120,15 @@ class _FunctionEditViewState extends State<FunctionEditView> {
                             return Tuple3(param.name, param.type, param.isArray);
                           },
                           builder: (_, data, __) {
-                            return Text("${data.item2.name} ${data.item1}");
+                            return ListTile(
+                              selected: selectedParam == index,
+                              title: Text("${data.item2.name} ${data.item1}"),
+                              onTap: () {
+                                setState(() {
+                                  selectedParam = selectedParam != index ? index : null;
+                                });
+                              },
+                            );
                           },
                         ),
                       ),
@@ -125,20 +137,46 @@ class _FunctionEditViewState extends State<FunctionEditView> {
                 )
               )
             ),
-            ElevatedButton(
-              child: const Text("Add"),
-              onPressed: () async {
-                Future<List?> paramFuture = showDialog(
-                  context: context,
-                  builder: (_) => const _FunctionParamEditDialog()
-                );
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ElevatedButton(
+                  child: const Text("Add"),
+                  onPressed: () async {
+                    Future<List?> paramFuture = showDialog(
+                        context: context,
+                        builder: (_) => const _FunctionParamEditDialog()
+                    );
 
-                List<dynamic>? result = await paramFuture;
+                    List<dynamic>? result = await paramFuture;
 
-                if (result == null) return;
+                    if (result == null) return;
 
-                viewModel.addFunctionParam(result[0], result[1], result[2]);
-              },
+                    viewModel.addFunctionParam(result[0], result[1], result[2]);
+                  },
+                ),
+                ElevatedButton(
+                  onPressed: selectedParam != null ? () async {
+                    Future<List?> paramFuture = showDialog(
+                        context: context,
+                        builder: (_) => _FunctionParamEditDialog(param: viewModel.functionParameters[selectedParam!])
+                    );
+
+                    List<dynamic>? result = await paramFuture;
+
+                    if (result == null) return;
+
+                    viewModel.editFunctionParam(selectedParam!, result[0], result[1], result[2]);
+                  } : null,
+                  child: const Text("Edit"),
+                ),
+                ElevatedButton(
+                  onPressed: selectedParam != null ? () {
+                    viewModel.deleteFunctionParam(selectedParam!);
+                  } : null,
+                  child: const Text("Delete"),
+                ),
+              ],
             )
           ],
         ),
