@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
 import 'package:code_chart/flowchart_editor/models/base_element.dart';
 import 'package:code_chart/flowchart_editor/models/element_factory.dart';
 import 'package:code_chart/flowchart_editor/models/flowchart.dart';
@@ -59,14 +60,43 @@ class FunctionFlowchartData with FlowchartElementsData {
   late Uint8List params;
 
   FunctionFlowchartData.fromBytes(Uint8List data, int currentOffset, int? sizeInBytes) {
-    returnType = data.buffer.asUint32List(currentOffset, 1);
+    int originalOffset = currentOffset;
+
+    returnType = data.sublist(currentOffset, currentOffset + 4).buffer.asUint32List();
     currentOffset += returnType.lengthInBytes;
 
-    numberOfParams = data.buffer.asUint32List(currentOffset, 1);
+    numberOfParams = data.sublist(currentOffset, currentOffset + 4).buffer.asUint32List();
     currentOffset += numberOfParams.lengthInBytes;
 
-    startPointer = data.buffer.asUint64List(currentOffset, 1);
+    startPointer = data.sublist(currentOffset, currentOffset + 8).buffer.asUint64List();
     currentOffset += startPointer.lengthInBytes;
+
+    List<int> temp = [];
+
+    while (data[currentOffset] != 0) {
+      temp.add(data[currentOffset]);
+      currentOffset += 1;
+    }
+    temp.add(data[currentOffset]);
+    currentOffset += 1;
+
+    functionName = Uint8List.fromList(temp);
+
+    temp.clear();
+    while (data[currentOffset] != 0) {
+      temp.add(data[currentOffset]);
+      currentOffset += 1;
+    }
+    temp.add(data[currentOffset]);
+    currentOffset += 1;
+
+    returnExpression = Uint8List.fromList(temp);
+
+    params = data.sublist(currentOffset, startPointer[0]);
+    currentOffset += params.lengthInBytes;
+
+    int? size = sizeInBytes == null ? null : sizeInBytes - (currentOffset - originalOffset);
+    setElementDataFromBytes(data, currentOffset, size);
   }
 
   FunctionFlowchartData(FunctionFlowchart functionFlowchart, int absoluteOffset) :
@@ -88,6 +118,25 @@ class FunctionFlowchartData with FlowchartElementsData {
     startPointer[0] = absoluteOffset + returnType.buffer.lengthInBytes + numberOfParams.buffer.lengthInBytes +
         startPointer.buffer.lengthInBytes + functionName.buffer.lengthInBytes + returnExpression.lengthInBytes + params.buffer.lengthInBytes;
     setElementDataFromMap(functionFlowchart.elements2);
+  }
+
+  FunctionFlowchart createFunctionFlowchartFromSave() {
+    String name = ascii.decode(functionName.toList()..removeLast());
+    FunctionFlowchart functionFlowchart = FunctionFlowchart(name);
+
+    DataType? type = returnType[0] == 0xffffffff ? null : DataType.values[returnType[0]];
+    functionFlowchart.returnType = type;
+
+    functionFlowchart.returnExpression = ascii.decode(returnExpression.toList()..removeLast());
+
+    List<dynamic> jsonParam = jsonDecode(utf8.decode(params, allowMalformed: false))["parameters"];
+    for (int i = 0; i < numberOfParams[0]; i += 1) {
+      functionFlowchart.addFunctionParameter(jsonParam[i]["name"], DataType.values[jsonParam[i]["type"]], jsonParam[i]["isArray"]);
+    }
+
+    functionFlowchart.setElementsMap(getElementsMapObject());
+
+    return functionFlowchart;
   }
 
   Uint8List get combinedData => Uint8List.fromList(
@@ -176,7 +225,7 @@ class FlowchartProgramSaveFile with FlowchartElementsData {
     hashDigest = Digest(data.sublist(offset, offset + hashDigestSize));
     offset += hashDigestSize;
 
-    int? size = functionsCount[0] > 0 ? functionsPointers[0] : null;
+    int? size = functionsCount[0] > 0 ? functionsPointers[0] - offset : null;
     setElementDataFromBytes(data, offset, size);
 
     for (int i = 0; i < functionsCount[0]; i += 1) {
@@ -200,6 +249,11 @@ class FlowchartProgramSaveFile with FlowchartElementsData {
     Flowchart mainFlowchart = Flowchart("Main");
     mainFlowchart.setElementsMap(getElementsMapObject());
     FlowchartProgram program = FlowchartProgram.create(programName, mainFlowchart);
+
+    for (int i = 0; i < functionsCount[0]; i += 1) {
+      var function = functionsData[i].createFunctionFlowchartFromSave();
+      program.addFunction(function.name, function);
+    }
 
     return program;
   }
