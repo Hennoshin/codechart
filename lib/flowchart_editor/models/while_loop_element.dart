@@ -37,7 +37,7 @@ class WhileLoopElement extends BranchingElement {
   }
 
   @override
-  String toJsonImpl() {
-    return jsonEncode({"type": 4, "expression": baseExpr});
+  Map<String, dynamic> toJson() {
+    return {"type": 4, "expression": baseExpr};
   }
 }
