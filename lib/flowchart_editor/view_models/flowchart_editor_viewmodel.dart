@@ -18,7 +18,7 @@ class FlowchartEditorViewModel extends ChangeNotifier {
   int elementSelectIndex = 0;
   String addElementIndex = "1";
 
-  int _selectedToolsIndex = 0;
+  int _selectedToolsIndex = 1;
 
   int get selectedToolsIndex => _selectedToolsIndex;
   set selectedToolsIndex(i) {
