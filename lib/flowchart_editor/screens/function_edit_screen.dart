@@ -1,6 +1,6 @@
 import 'package:code_chart/flowchart_editor/models/flowchart_program.dart';
 import 'package:code_chart/flowchart_editor/models/function_flowchart.dart';
-import 'package:code_chart/flowchart_editor/screens/basic_screen.dart';
+import 'package:code_chart/commons/basic_screen.dart';
 import 'package:code_chart/flowchart_editor/view_models/function_edit_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/view_models/function_manager_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/views/function_edit_view.dart';

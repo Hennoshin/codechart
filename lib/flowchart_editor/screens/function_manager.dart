@@ -1,5 +1,5 @@
 import 'package:code_chart/flowchart_editor/models/flowchart_program.dart';
-import 'package:code_chart/flowchart_editor/screens/basic_screen.dart';
+import 'package:code_chart/commons/basic_screen.dart';
 import 'package:code_chart/flowchart_editor/view_models/function_manager_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

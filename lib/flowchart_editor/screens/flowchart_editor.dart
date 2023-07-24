@@ -4,7 +4,7 @@ import 'package:code_chart/flowchart_editor/views/flowchart_editor_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'basic_screen.dart';
+import '../../commons/basic_screen.dart';
 
 class FlowchartEditorScreen extends BasicScreen {
   final FlowchartProgram flowchart = FlowchartProgram("Untitled");
