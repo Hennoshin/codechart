@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:code_chart/code_converter/model/converted_codes.dart';
 import 'package:code_chart/commons/error_dialog.dart';
 import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
 import 'package:code_chart/flowchart_editor/models/assignment_element.dart';
@@ -101,29 +102,6 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
                 viewModel.setProgramName(newName);
               },
             ),
-            IconButton(
-              icon: const Icon(Icons.download_sharp),
-              onPressed: () async {
-                try {
-                  await viewModel.loadProgram();
-                }
-                catch (e) {
-                  showDialog(context: context, builder: (_) => ErrorDialog(title: "Failed to load file", content: e.toString()));
-                }
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: () async {
-                await viewModel.saveProgram();
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.download_sharp),
-              onPressed: () {
-                generateFlowchartImage(context);
-              },
-            ),
             DropdownButton<String>(
               value: viewModel.currentFlowchartID,
               items: <DropdownMenuItem<String>>[
@@ -153,6 +131,61 @@ class _FlowchartEditorViewState extends State<FlowchartEditorView> {
               Tab(icon: Icon(Icons.account_tree)),
               Tab(icon: Icon(Icons.memory)),
               Tab(icon: Icon(Icons.wysiwyg))
+            ],
+          ),
+        ),
+        drawer: Drawer(
+          child: ListView(
+            children: <Widget>[
+              DrawerHeader(
+                decoration: const BoxDecoration(
+                  color: Colors.blue
+                ),
+                child: Text(
+                  viewModel.programName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.save),
+                title: const Text("Save Flowchart Program"),
+                onTap: () async {
+                  try {
+                    await viewModel.saveProgram();
+                  }
+                  catch (e) {
+                    showDialog(context: context, builder: (_) => ErrorDialog(title: "Failed to save file", content: e.toString()));
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder),
+                title: const Text("Open Flowchart Program"),
+                onTap: () async {
+                  try {
+                    await viewModel.loadProgram();
+                  }
+                  catch (e) {
+                    showDialog(context: context, builder: (_) => ErrorDialog(title: "Failed to load file", content: e.toString()));
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.image),
+                title: const Text("Save Current Flowchart as Image"),
+                onTap: () {
+                  generateFlowchartImage(context);
+                },
+              ),
+              ListTile(
+                title: const Text("Convert to codes"),
+                onTap: () {
+                  Navigator.pushNamed(context, RouteNames.codeConversion, arguments: viewModel.mainProgram);
+                },
+              )
             ],
           ),
         ),
