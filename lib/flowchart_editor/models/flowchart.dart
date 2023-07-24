@@ -1,12 +1,28 @@
-import 'package:code_chart/flowchart_editor/execution_environment/execution_environment.dart';
 import 'package:code_chart/flowchart_editor/models/branching_element.dart';
 import 'package:code_chart/flowchart_editor/models/merging_element.dart';
 import 'package:code_chart/flowchart_editor/models/terminal_element.dart';
+import 'package:code_chart/flowchart_editor/models/while_loop_element.dart';
 import "base_element.dart";
 
+enum ArrowLineType {
+  straight,
+  branchEmptyLeft,
+  branchEmptyRight,
+  branchInLeft,
+  branchOutLeft,
+  branchInRight,
+  branchOutRight
+}
+
 class Flowchart {
-  List<BaseElement> elements = [];
   Map<String, BaseElement> elements2 = {};
+
+  /*
+   * TODO: Change this to another data which hold more important and relevant value to the Flowchart, such as valid point placements.
+      The [ArrowLineType] is not relevant in this class and should only be of importance the the View instead.
+   */
+  // The arrows between elements
+  Map<String, ArrowLineType> _elementInsertList = {};
 
   Flowchart(String? startPlaceholder) {
     BaseElement start = TerminalElement.start(startPlaceholder);
@@ -14,32 +30,45 @@ class Flowchart {
     start.nextElement = end;
     end.nextElement = end;
 
-    elements.add(start);
-    elements.add(end);
 
     elements2["0"] = start;
+    _elementInsertList["1e"] = ArrowLineType.straight;
     elements2["1"] = end;
   }
 
   void fullReindex() {
     var start = elements2["0"]!;
     elements2.clear();
+    _elementInsertList.clear();
     _reindex(start);
+
   }
 
   // TODO: Add support to accept [index] parameter to reindex for that point instead of from the beginning
-  void _reindex(BaseElement start, [String prefix = "", MergingElement? mergeBranch]) {
+  void _reindex(BaseElement start, [String prefix = "", BaseElement? mergePoint]) {
     int index = 0;
     BaseElement currentEl = start;
     BaseElement? prevEl;
     if (prefix != "") {
       index += 1;
     }
-    while (prevEl != currentEl && currentEl != mergeBranch) {
+    while (prevEl != currentEl && currentEl != mergePoint) {
+      ArrowLineType lineType = ArrowLineType.straight;
+      if (prefix != "" && index == 1) {
+        lineType = int.parse(prefix.substring(prefix.length - 2, prefix.length - 1)) == 0 ?
+        ArrowLineType.branchInLeft : ArrowLineType.branchInRight;
+      }
+      _elementInsertList["$prefix${index}e"] = lineType;
       elements2[prefix + index.toString()] = currentEl;
 
-      if (currentEl is BranchingElement) {
+      if (currentEl is WhileLoopElement) {
+        _elementInsertList["$prefix$index.0.1e"] = ArrowLineType.branchEmptyLeft;
+        _reindex(currentEl.trueBranchNextElement, "$prefix$index.0.", currentEl);
+      } else if (currentEl is BranchingElement) {
+        _elementInsertList["$prefix$index.0.1e"] = ArrowLineType.branchEmptyLeft;
         _reindex(currentEl.trueBranchNextElement, "$prefix$index.0.", currentEl.mergePoint);
+
+        _elementInsertList["$prefix$index.1.1e"] = ArrowLineType.branchEmptyRight;
         _reindex(currentEl.falseBranchNextElement, "$prefix$index.1.", currentEl.mergePoint);
       }
 
@@ -47,24 +76,37 @@ class Flowchart {
       currentEl = currentEl.nextElement;
       index += 1;
     }
+
+    if (prefix == "") {
+      _elementInsertList.remove("0e");
+    } else if (index != 1) {
+      ArrowLineType lineType = int.parse(prefix.substring(prefix.length - 2, prefix.length - 1)) == 0 ?
+      ArrowLineType.branchOutLeft : ArrowLineType.branchOutRight;
+
+      _elementInsertList["$prefix${index}e"] = lineType;
+    }
   }
 
+  // TODO: Improve performance by preventing full reindex every time
   void addElement2(BaseElement newElement, String targetLocation) {
     List<int> indexes = targetLocation.split(".").map((e) => int.parse(e)).toList();
-    int prevIndex = indexes.removeLast() - 1;
+    int index = indexes.removeLast();
+    int prevIndex = index - 1;
     int? branch;
     if (indexes.isNotEmpty) {
       branch = indexes.removeLast();
     }
 
     // Calculate previous element index before the current target
-    String prevTarget = targetLocation.replaceRange(targetLocation.length - 1, null, prevIndex.toString());
-    if (prevIndex == 0 && targetLocation.length > 1) {
+    String indexString = index.toString();
+    String prevIndexString = prevIndex.toString();
+    String prevTarget = targetLocation.replaceRange(targetLocation.length - indexString.length, null, prevIndexString);
+    if (prevIndex == 0 && targetLocation.contains(".")) {
       prevTarget = prevTarget.substring(0, prevTarget.length - 4);
     }
 
     BaseElement prevElement = elements2[prevTarget]!;
-    if (prevIndex == 0 && targetLocation.length > 1) {
+    if (prevIndex == 0 && targetLocation.contains(".")) {
       if (branch! == 0) {
         newElement.nextElement = (prevElement as BranchingElement).trueBranchNextElement;
         prevElement.trueBranchNextElement = newElement;
@@ -82,38 +124,27 @@ class Flowchart {
     fullReindex();
   }
 
-  void _shiftElements(BaseElement newElement, String targetLocation) {
-    BaseElement? element = newElement;
-    String currentTarget = targetLocation;
-    int currentTargetLastIndex = currentTarget.length - 1;
-    int index = int.parse(currentTarget.substring(currentTargetLastIndex));
-    do {
-      var tmpElement = elements2[currentTarget];
-      elements2[currentTarget] = element!;
-      element = tmpElement;
-
-      index += 1;
-      currentTarget = targetLocation.replaceRange(currentTargetLastIndex, null, index.toString());
-    } while (element != null);
-  }
 
   void removeElement2(String targetLocation) {
     BaseElement currentElement = elements2[targetLocation]!;
 
     List<int> indexes = targetLocation.split(".").map((e) => int.parse(e)).toList();
-    int prevIndex = indexes.removeLast() - 1;
+    int index = indexes.removeLast();
+    int prevIndex = index - 1;
     int? branch;
     if (indexes.isNotEmpty) {
       branch = indexes.removeLast();
     }
 
-    String prevTarget = targetLocation.replaceRange(targetLocation.length - 1, null, prevIndex.toString());
-    if (prevIndex == 0 && targetLocation.length > 1) {
+    String indexString = index.toString();
+    String prevIndexString = prevIndex.toString();
+    String prevTarget = targetLocation.replaceRange(targetLocation.length - indexString.length, null, prevIndexString);
+    if (prevIndex == 0 && targetLocation.contains(".")) {
       prevTarget = prevTarget.substring(0, prevTarget.length - 4);
     }
 
     BaseElement prevElement = elements2[prevTarget]!;
-    if (prevIndex == 0 && targetLocation.length > 1) {
+    if (prevIndex == 0 && targetLocation.contains(".")) {
       if (branch! == 0) {
         (prevElement as BranchingElement).trueBranchNextElement = currentElement.nextElement;
       }
@@ -128,36 +159,31 @@ class Flowchart {
     fullReindex();
   }
 
-  void _shiftRemoveElements(String targetLocation) {
-    BaseElement? element;
-    String currentTarget = targetLocation;
-    int currentTargetLastIndex = currentTarget.length - 1;
-    int index = int.parse(currentTarget.substring(currentTargetLastIndex));
+  // TODO: Optimize this function, currently only add the elements using its own add function
+  void setElementsMap(Map<String, BaseElement> map) {
+    _elementInsertList.clear();
+    elements2.clear();
 
-    String target2 = currentTarget.replaceRange(currentTargetLastIndex, null, (index + 1).toString());
-    element = elements2[target2];
-    while (element != null) {
-      elements2[currentTarget] = element;
+    Map<String, BaseElement> mapCopy = map;
+    List<String> keys = mapCopy.keys.toList();
+    keys.sort((str1, str2) => str1.compareTo(str2));
 
-      index += 1;
-      currentTarget = targetLocation.replaceRange(currentTargetLastIndex, null, index.toString());
-      target2 = currentTarget.replaceRange(currentTargetLastIndex, null, (index + 1).toString());
+    elements2["0"] = mapCopy[keys.first]!;
+    _elementInsertList["1e"] = ArrowLineType.straight;
+    elements2["1"] = mapCopy[keys.last]!;
 
-      element = elements2[target2];
+    elements2["0"]!.nextElement = elements2["1"];
+    elements2["1"]!.nextElement = elements2["1"];
+
+    keys.removeAt(0);
+    keys.removeLast();
+
+    for (var key in keys) {
+      addElement2(mapCopy[key]!, key);
     }
-    elements2.remove(currentTarget);
   }
 
-  void _reindexElements(String locationIndex, String newIndex) {
-    elements2.map((key, value) {
-      if (key.contains(locationIndex)) {
-        return MapEntry(key.replaceRange(0, null, newIndex), value);
-      }
-
-      return MapEntry(key, value);
-    });
-  }
-
+  /*
   // The location is indexed like a tree, starts from 0 to n.
   // For branching element, the elements inside the branch is considered sub-tree.
   // Example, if-else element at index 2, next trueElement is 2.0.1, and then 2.0.2; falseElement is 2.1.1
@@ -220,6 +246,8 @@ class Flowchart {
     _rearrangeElement(prevElement, currentElement.nextElement, prevBranch);
   }
 
+   */
+
   void _rearrangeElement(BaseElement cur, BaseElement nextEl, int? branch) {
     if (branch == null) {
       cur.nextElement = nextEl;
@@ -276,5 +304,6 @@ class Flowchart {
     }
   }
 
-  BaseElement get startElement => elements.first;
+  BaseElement get startElement => elements2["0"]!;
+  Map<String, ArrowLineType> get elementInsertList => _elementInsertList;
 }

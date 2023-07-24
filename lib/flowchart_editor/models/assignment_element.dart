@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
@@ -9,6 +10,10 @@ class AssignmentElement extends BaseElement {
   String? _assignmentExpr;
 
   AssignmentElement(String? baseExpr, this._assignmentExpr) : super(baseExpr);
+
+  AssignmentElement.fromJson(Map<String, dynamic> json) :
+        _assignmentExpr = json["leftOp"],
+        super(json["rightOp"]);
 
   /*
    * Evaluate variable assignment
@@ -40,7 +45,8 @@ class AssignmentElement extends BaseElement {
   }
 
   @override
-  List<String?> get expr => [_assignmentExpr] + super.expr;
+  List<String?> get exprList => [_assignmentExpr, baseExpr];
+  String? get assignmentExpr => _assignmentExpr;
 
   set assignmentExpr(exp) => _assignmentExpr = exp;
 
@@ -60,12 +66,25 @@ class AssignmentElement extends BaseElement {
     }
 
     assignmentExpr = properties.first as String;
-    expr = properties.last as String;
+    baseExpr = properties.last as String;
   }
 
   @override
   String toString() {
-    String str = (_assignmentExpr ?? "") + (super.expr.first ?? "");
-    return str != "" ? str : "Assignment";
+    String str = "${_assignmentExpr ?? ""} = ${baseExpr ?? ""}";
+    return str != " = " ? str : "Assignment";
+  }
+
+  @override
+  AssignmentElement copyWith() {
+    var newElement = AssignmentElement(baseExpr, _assignmentExpr);
+    newElement.nextElement = nextElement;
+
+    return newElement;
+  }
+  
+  @override
+  Map<String, dynamic> toJson() {
+    return {"type": 2, "leftOp": _assignmentExpr, "rightOp": baseExpr};
   }
 }

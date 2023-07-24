@@ -1,9 +1,15 @@
+import 'dart:math';
+
 import 'package:code_chart/flowchart_editor/models/assignment_element.dart';
 import 'package:code_chart/flowchart_editor/models/base_element.dart';
 import 'package:code_chart/flowchart_editor/models/branching_element.dart';
 import 'package:code_chart/flowchart_editor/models/terminal_element.dart';
+import 'package:code_chart/flowchart_editor/models/while_loop_element.dart';
 import 'package:test/test.dart';
 import 'package:code_chart/flowchart_editor/models/flowchart.dart';
+
+
+// TODO: Update test to include testing for the arrow position/valid placement
 
 void main() {
   late Flowchart flowchart;
@@ -65,6 +71,22 @@ void main() {
     expect((flowchart.elements2["1"]!.nextElement), flowchart.elements2["2"]);
     expect((flowchart.elements2["1"]! as BranchingElement).trueBranchNextElement, element2);
     expect((flowchart.elements2["1.0.1"]! as BranchingElement).falseBranchNextElement, element3);
+  });
+
+  test("Test adding a while loop element", () {
+    BaseElement element1 = WhileLoopElement(null);
+    BaseElement element2 = AssignmentElement(null, null);
+    BaseElement element3 = AssignmentElement(null, null);
+
+    flowchart.addElement2(element1, "1");
+    expect(() => flowchart.addElement2(element2, "1.0.1"), returnsNormally);
+    expect(() => flowchart.addElement2(element3, "2"), returnsNormally);
+
+    expect(flowchart.elements2.length, 5);
+    expect(flowchart.elements2["1"]!.nextElement, flowchart.elements2["2"]!);
+    expect((flowchart.elements2["1"]! as WhileLoopElement).trueBranchNextElement, flowchart.elements2["1.0.1"]!);
+    expect((flowchart.elements2["1"]! as WhileLoopElement).falseBranchNextElement, flowchart.elements2["2"]!);
+    expect(flowchart.elements2["1.0.1"]!.nextElement, flowchart.elements2["1"]!);
   });
 
   test("Test delete element", () {

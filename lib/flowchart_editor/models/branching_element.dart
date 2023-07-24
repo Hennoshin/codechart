@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
 import 'package:code_chart/flowchart_editor/execution_environment/memory.dart';
 import 'package:code_chart/flowchart_editor/models/base_element.dart';
@@ -13,6 +15,8 @@ class BranchingElement extends BaseElement {
   BranchingElement(super.expr) : mergePoint = MergingElement() {
    setDefault();
   }
+
+  BranchingElement.fromJson(Map<String, dynamic> json) : this(json["expression"]);
 
   @override
   void setDefault() {
@@ -67,6 +71,29 @@ class BranchingElement extends BaseElement {
       throw Exception("Expected String for the properties");
     }
 
-    expr = properties.first as String;
+    baseExpr = properties.first as String;
+  }
+
+  @override
+  List<String?> get exprList => [baseExpr];
+
+  @override
+  BranchingElement copyWith() {
+    var newElement = BranchingElement(baseExpr);
+    newElement.falseBranchNextElement = newElement.mergePoint;
+    newElement.trueBranchNextElement = newElement.mergePoint;
+    newElement.nextElement = nextElement;
+
+    return newElement;
+  }
+
+  @override
+  String toString() {
+    return baseExpr ?? "If";
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {"type": 3, "expression": baseExpr};
   }
 }

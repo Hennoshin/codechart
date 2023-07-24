@@ -1,4 +1,5 @@
-import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
+import 'dart:convert';
+
 import 'package:code_chart/flowchart_editor/execution_environment/memory.dart';
 import 'package:code_chart/flowchart_editor/models/base_element.dart';
 import 'package:code_chart/utility/data_classes.dart';
@@ -9,20 +10,10 @@ import 'package:code_chart/utility/data_classes.dart';
 class OutputElement extends BaseElement {
   OutputElement(super.expr);
 
+  OutputElement.fromJson(Map<String, dynamic> json) : this(json["expression"]);
+
   @override
   BaseElement evaluate(Memory stack, List<ASTNode> exprs) {
-    if (exprs.length != 1) {
-      throw Exception("Unexpected number of expressions");
-    }
-
-    var expression = exprs.single;
-    dynamic value = expression.value;
-    if (expression.type == ASTNodeType.identifier) {
-      value = (value as Wrapper).value;
-    }
-
-    stack.setHiddenData("output_buffer", value.toString());
-
     return nextElement;
   }
 
@@ -35,7 +26,27 @@ class OutputElement extends BaseElement {
       throw Exception("Expecting String as the first properties");
     }
 
-    expr = properties.single as String;
+    baseExpr = properties.single as String;
   }
 
+  @override
+  List<String?> get exprList => ["output($baseExpr)"];
+
+  @override
+  String toString() {
+    return baseExpr ?? "Output";
+  }
+
+  @override
+  OutputElement copyWith() {
+    var newElement = OutputElement(baseExpr);
+    newElement.nextElement = nextElement;
+
+    return newElement;
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {"type": 6, "expression": baseExpr};
+  }
 }

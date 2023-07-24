@@ -35,6 +35,13 @@ class FlowchartViewModel extends ChangeNotifier {
     return _flowchart.elements2.length;
   }
 
+  void updateElementAt(String location, List<dynamic> properties) {
+    BaseElement element = _flowchart.elements2[location]!;
+    element.setProperties(properties);
+
+    notifyListeners();
+  }
+
   Flowchart get flowchart => _flowchart;
   set flowchart(Flowchart fl) {
     _flowchart = fl;

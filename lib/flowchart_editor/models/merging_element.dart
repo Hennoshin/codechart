@@ -11,10 +11,20 @@ class MergingElement extends BaseElement {
   }
 
   @override
-  List<String?> get expr => [];
+  List<String?> get exprList => [];
 
   @override
   void setProperties(List properties) {
     throw UnsupportedError("Call to this method should not be performed");
+  }
+
+  @override
+  BaseElement copyWith() {
+    throw UnsupportedError("MergingElement cannot be cloned as it is part of BranchingElement");
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    throw UnsupportedError("MergingElement cannot be converted to JSON as it is part of BranchingElement");
   }
 }

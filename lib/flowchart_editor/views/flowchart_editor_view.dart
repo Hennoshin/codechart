@@ -1,10 +1,28 @@
+import 'dart:convert';
+
+import 'package:code_chart/code_converter/model/converted_codes.dart';
+import 'package:code_chart/commons/error_dialog.dart';
+import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
+import 'package:code_chart/flowchart_editor/models/assignment_element.dart';
+import 'package:code_chart/flowchart_editor/models/branching_element.dart';
+import 'package:code_chart/flowchart_editor/models/declaration_element.dart';
+import 'package:code_chart/flowchart_editor/models/function_call_element.dart';
+import 'package:code_chart/flowchart_editor/models/input_element.dart';
+import 'package:code_chart/flowchart_editor/models/output_element.dart';
+import 'package:code_chart/flowchart_editor/models/while_loop_element.dart';
+import 'package:code_chart/flowchart_editor/view_models/console_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/view_models/flowchart_editor_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/view_models/flowchart_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/view_models/memory_viewmodel.dart';
 import 'package:code_chart/flowchart_editor/views/flowchart_view.dart';
 import 'package:code_chart/flowchart_editor/views/memory_view.dart';
+import 'package:code_chart/utility/file_io_service.dart';
 import "package:flutter/material.dart";
 import 'package:provider/provider.dart';
+
+import '../../commons/routes.dart';
+import '../models/base_element.dart';
+import 'console_view.dart';
 
 class FlowchartEditorView extends StatefulWidget {
 
@@ -16,58 +34,215 @@ class FlowchartEditorView extends StatefulWidget {
 }
 
 class _FlowchartEditorViewState extends State<FlowchartEditorView> {
+  final ScrollController _controller = ScrollController();
+  final GlobalKey _flowchartViewKey = GlobalKey();
+
+  Future<void> generateFlowchartImage(BuildContext context) async {
+    FlowchartEditorViewModel vm = context.read<FlowchartEditorViewModel>();
+    try {
+      var imageData = await (_flowchartViewKey.currentWidget! as FlowchartView).captureFlowchart();
+      if (imageData == null) {
+        throw Exception("Unable to create image. Unknown error");
+      }
+
+      print(base64.encode(imageData));
+
+      FileIOService service = FileIOService.instance;
+      await service.saveToFile(fileName: "${vm.programName} ${vm.currentFlowchartID}.png", bytes: imageData, mime: "image/png");
+    }
+    catch (e) {
+      showDialog(context: context, builder: (_) => ErrorDialog(title: "Failed to generate flowchart image", content: e.toString()));
+    }
+  }
+
+  BaseElement _createElement(BaseElement element) {
+    element.nextElement = element;
+    
+    return element;
+  }
+  
+  Widget _buildAddElementWidget({required BaseElement element, required String name}) {
+    return LongPressDraggable<BaseElement>(
+      data: element,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: SizedBox(
+        child: Text(name),
+      ),
+      child: SizedBox(
+        child: Container(
+          margin: const EdgeInsetsDirectional.only(start: 10, end: 10),
+          padding: const EdgeInsetsDirectional.all(5),
+          color: Colors.blue,
+          child: Text(name)
+        )
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var viewModel = context.watch<FlowchartEditorViewModel>();
     var programName = viewModel.programName;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(programName),
-      ),
-      body: Center(
-        child: Container(
-          padding: const EdgeInsets.all(10.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(programName),
+          actions: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () async {
+                String? newName = await showDialog(context: context, builder: (_) => _EditProgramNameDialog(currentName: programName));
+
+                if (newName == null) {
+                  return;
+                }
+
+                viewModel.setProgramName(newName);
+              },
+            ),
+            DropdownButton<String>(
+              value: viewModel.currentFlowchartID,
+              items: <DropdownMenuItem<String>>[
+                const DropdownMenuItem(
+                  value: "main",
+                  child: Text("Main"),
+                ),
+                for (var str in viewModel.mainProgram.functionTable.keys)
+                  DropdownMenuItem(
+                    value: str,
+                    child: Text(str),
+                  ),
+              ],
+              onChanged: (value) {
+                viewModel.setCurrentFlowchart(value!);
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.functions),
+              onPressed: () {
+                Navigator.pushNamed(context, RouteNames.functionManager, arguments: viewModel.mainProgram);
+              },
+            )
+          ],
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.account_tree)),
+              Tab(icon: Icon(Icons.memory)),
+              Tab(icon: Icon(Icons.wysiwyg))
+            ],
+          ),
+        ),
+        drawer: Drawer(
+          child: ListView(
             children: <Widget>[
-              ChangeNotifierProxyProvider<FlowchartEditorViewModel, FlowchartViewModel>(
-                create: (_) => FlowchartViewModel(viewModel.currentFlowchart),
-                update: (_, flowchartEditorViewModel, fvm) => fvm!..update(flowchartEditorViewModel),
-                child: const FlowchartView(),
+              DrawerHeader(
+                decoration: const BoxDecoration(
+                  color: Colors.blue
+                ),
+                child: Text(
+                  viewModel.programName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24
+                  ),
+                ),
               ),
-              ChangeNotifierProxyProvider<FlowchartEditorViewModel, MemoryViewModel>(
-                create: (_) => MemoryViewModel(),
-                update: (_, flowchartEditorViewModel, memoryVm) => memoryVm!..update(flowchartEditorViewModel),
-                child: const MemoryView(),
+              ListTile(
+                leading: const Icon(Icons.save),
+                title: const Text("Save Flowchart Program"),
+                onTap: () async {
+                  try {
+                    await viewModel.saveProgram();
+                  }
+                  catch (e) {
+                    showDialog(context: context, builder: (_) => ErrorDialog(title: "Failed to save file", content: e.toString()));
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder),
+                title: const Text("Open Flowchart Program"),
+                onTap: () async {
+                  try {
+                    await viewModel.loadProgram();
+                  }
+                  catch (e) {
+                    showDialog(context: context, builder: (_) => ErrorDialog(title: "Failed to load file", content: e.toString()));
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.image),
+                title: const Text("Save Current Flowchart as Image"),
+                onTap: () {
+                  generateFlowchartImage(context);
+                },
+              ),
+              ListTile(
+                title: const Text("Convert to codes"),
+                onTap: () {
+                  Navigator.pushNamed(context, RouteNames.codeConversion, arguments: viewModel.mainProgram);
+                },
               )
             ],
-          )
+          ),
         ),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        child: Container(
-          padding: const EdgeInsets.all(5.0),
-          child: Row(
-            children: <Widget>[
-              const _FlowchartExecutionControl(),
-              ElevatedButton(
-                  onPressed: () {
-                    context.read<FlowchartEditorViewModel>().addElement(0);
-                  },
-                  child: const Text("Element 1")),
-              ElevatedButton(
-                  onPressed: () {
-                    context.read<FlowchartEditorViewModel>().addElement(1);
-                  },
-                  child: const Text("Element 2")),
-              ElevatedButton(
-                  onPressed: () {
-                    context.read<FlowchartEditorViewModel>().addElement(2);
-                  },
-                  child: const Text("Element 3")),
-              const _ToolsRow()
-            ],
+        body: Center(
+          child: Container(
+              padding: const EdgeInsets.all(10.0),
+              child: TabBarView(
+                physics: const NeverScrollableScrollPhysics(),
+                children: <Widget>[
+                  ChangeNotifierProxyProvider<FlowchartEditorViewModel, FlowchartViewModel>(
+                    create: (_) => FlowchartViewModel(viewModel.currentFlowchart),
+                    update: (_, flowchartEditorViewModel, fvm) => fvm!..update(flowchartEditorViewModel),
+                    child: Center(
+                      child: FlowchartView(key: _flowchartViewKey),
+                    ),
+                  ),
+                  ChangeNotifierProxyProvider<FlowchartEditorViewModel, MemoryViewModel>(
+                    create: (_) => MemoryViewModel(),
+                    update: (_, flowchartEditorViewModel, memoryVm) => memoryVm!..update(flowchartEditorViewModel),
+                    child: const MemoryView(),
+                  ),
+                  ChangeNotifierProxyProvider<FlowchartEditorViewModel, ConsoleViewModel>(
+                    create: (_) => ConsoleViewModel(),
+                    update: (_, flowchartEditorViewModel, consoleVm) => consoleVm!..update(flowchartEditorViewModel),
+                    child: ConsoleView(),
+                  )
+                ],
+              )
+          ),
+        ),
+        bottomNavigationBar: BottomAppBar(
+          child: Container(
+            padding: const EdgeInsets.all(5.0),
+            child: Row(
+              children: <Widget>[
+                const _FlowchartExecutionControl(),
+                Expanded(
+                  child: Container(
+                    height: 40,
+                    child: ListView(
+                      controller: _controller,
+                      scrollDirection: Axis.horizontal,
+                      children: <Widget>[
+                        _buildAddElementWidget(element: _createElement(DeclarationElement(null, false, DataType.integer)), name: "Declaration Element"),
+                        _buildAddElementWidget(element: _createElement(AssignmentElement(null, null)), name: "Assignment Element"),
+                        _buildAddElementWidget(element: _createElement(InputElement(null)), name: "Input Element"),
+                        _buildAddElementWidget(element: _createElement(OutputElement(null)), name: "Output Element"),
+                        _buildAddElementWidget(element: _createElement(FunctionCallElement(null)), name: "Function Call Element"),
+                        _buildAddElementWidget(element: _createElement(BranchingElement(null)), name: "Branching Element"),
+                        _buildAddElementWidget(element: _createElement(WhileLoopElement(null)), name: "While-Loop Element"),
+                      ],
+                    ),
+                  )
+                ),
+                const _ToolsRow()
+              ],
+            ),
           ),
         ),
       ),
@@ -120,7 +295,12 @@ class _FlowchartExecutionControl extends StatelessWidget {
             icon: const Icon(Icons.play_arrow),
             color: Colors.green,
             onPressed: () {
-              context.read<FlowchartEditorViewModel>().stepRunFlowchart();
+              try {
+                context.read<FlowchartEditorViewModel>().stepRunFlowchart();
+              }
+              catch (e) {
+                showDialog(context: context, builder: (_) => ErrorDialog(title: "Execution Error", content: e.toString()));
+              }
             },
           ),
           IconButton(
@@ -136,79 +316,61 @@ class _FlowchartExecutionControl extends StatelessWidget {
   }
 }
 
-/*
+class _EditProgramNameDialog extends StatefulWidget {
+  final String currentName;
 
-class _FlowchartModelView extends StatelessWidget {
-  _FlowchartModelView({Key? key}) : super(key: key);
+  const _EditProgramNameDialog({super.key, required this.currentName});
 
-  Widget _createFlowchart(BaseElement startElement, [String current = "", bool isBranch = false, MergingElement? endPoint]) {
-    print("Test build");
-    BaseElement element = startElement;
-    List<Widget> widgets = [];
+  @override
+  State<StatefulWidget> createState() => _EditProgramNameDialogState();
 
-    int i = 0;
-    if (isBranch) {
-      i += 1;
+}
 
-      widgets.add(_AddButton(index: current + i.toString()));
-    }
+class _EditProgramNameDialogState extends State<_EditProgramNameDialog> {
+  final TextEditingController _controller = TextEditingController();
+  String? _errorMessage;
 
-    while (element.nextElement != element && element != endPoint) {
-      if (element is BranchingElement) {
-        widgets.add(Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _createFlowchart(element.trueBranchNextElement, "$current$i.0.", true, element.mergePoint),
-            ElementWidget(element: element, index: current + i.toString()),
-            _createFlowchart(element.falseBranchNextElement, "$current$i.1.", true, element.mergePoint)
-          ]
-        ));
-      }
-      else {
-        print(i);
-        var c = ElementViewModel(element, current + i.toString());
-        widgets.add(ElementWidget(element: element, index: current + i.toString()));
-      }
+  @override
+  void initState() {
+    super.initState();
 
-      i += 1;
-      widgets.add(_AddButton(index: current + i.toString()));
-
-      element = element.nextElement;
-    }
-
-    if (!isBranch) {
-      widgets.add(ElementWidget(element: element, index: current + i.toString()));
-    }
-
-    return Column(
-      children: widgets,
-    );
+    _controller.text = widget.currentName;
   }
 
   @override
   Widget build(BuildContext context) {
-    Flowchart flowchart = context.watch<FlowchartEditorViewModel>().currentFlowchart;
+    return AlertDialog(
+      title: const Text("Edit Program Name"),
+      content: TextFormField(
+        controller: _controller,
+        decoration: InputDecoration(
+          label: const Text("Name"),
+          errorText: _errorMessage
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          child: const Text("Cancel"),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        TextButton(
+          child: const Text("Save"),
+          onPressed: () {
+            if (_controller.text == "") {
+              setState(() {
+                _errorMessage = "Name cannot be empty";
+              });
 
-    return _createFlowchart(flowchart.startElement);
-  }
-}
+              return;
+            }
 
-class _AddButton extends StatelessWidget {
-  final String index;
-
-  const _AddButton({Key? key, required this.index}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-        onPressed: () {
-          context.read<FlowchartEditorViewModel>().setAddElementSelect(index);
-        },
-        child: Text(index)
+            Navigator.pop(context, _controller.text);
+          },
+        )
+      ],
     );
   }
 
 }
-
- */

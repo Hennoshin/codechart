@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:code_chart/flowchart_editor/execution_environment/data_types.dart';
 import 'package:code_chart/flowchart_editor/execution_environment/memory.dart';
 import 'package:code_chart/flowchart_editor/models/base_element.dart';
@@ -9,9 +11,15 @@ class DeclarationElement extends BaseElement {
   int? arraySize;
   DeclarationElement(super.baseExpr, this._isArray, this._type);
 
+  DeclarationElement.fromJson(Map<String, dynamic> json) :
+        _type = DataType.values[json["dataType"]],
+        _isArray = json["isArray"],
+        arraySize = json["arraySize"],
+        super(json["expression"]);
+
   @override
   BaseElement evaluate(Memory stack, List<ASTNode> exprs) {
-    String expr = super.expr.first!;
+    String expr = baseExpr!;
     Function addVar = stack.addNewVariables;
 
     switch (_type) {
@@ -39,7 +47,7 @@ class DeclarationElement extends BaseElement {
   }
 
   @override
-  List<String?> get expr => [];
+  List<String?> get exprList => [];
   DataType get varType => _type;
   bool get isArray => _isArray;
 
@@ -66,11 +74,13 @@ class DeclarationElement extends BaseElement {
       throw Exception("Expected bool for the third properties");
     }
 
-    expr = properties[0];
+    baseExpr = properties[0];
     varType = properties[1];
     isArray = properties[2];
 
-    if (isArray && properties.length != 4) {
+    if (!isArray) return;
+
+    if (properties.length != 4) {
       throw Exception("Expected array size properties");
     }
     if (properties[3] is! int) {
@@ -82,6 +92,19 @@ class DeclarationElement extends BaseElement {
 
   @override
   String toString() {
-    return super.expr.first ?? "Declaration";
+    return baseExpr != null ? "${_type.name} $baseExpr" : "Declaration";
+  }
+
+  @override
+  DeclarationElement copyWith() {
+    var newElement = DeclarationElement(baseExpr, _isArray, _type);
+    newElement.nextElement = nextElement;
+
+    return newElement;
+  }
+  
+  @override
+  Map<String, dynamic> toJson() {
+    return {"type": 1, "dataType": _type.index, "expression": baseExpr, "isArray": _isArray, "arraySize": arraySize};
   }
 }
